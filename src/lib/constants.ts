@@ -1,0 +1,339 @@
+import type {
+  Service,
+  Barber,
+  TimeSlot,
+  Testimonial,
+  AppointmentStatus,
+  BookingStep,
+  SelectOption,
+} from '@/types'
+
+// ─── Services ────────────────────────────────────────────────────────────────
+
+export const SERVICES: Service[] = [
+  {
+    id: 'svc_haircut',
+    name: 'Classic Haircut',
+    description:
+      'Precision cut tailored to your face shape and style preference. Includes wash, cut, and styling.',
+    duration: 45,
+    price: 35,
+    category: 'haircut',
+    is_active: true,
+    display_order: 1,
+  },
+  {
+    id: 'svc_beard',
+    name: 'Beard Trim & Shape',
+    description:
+      'Expert beard sculpting, trimming, and lining to give your beard a clean, defined look.',
+    duration: 30,
+    price: 25,
+    category: 'beard',
+    is_active: true,
+    display_order: 2,
+  },
+  {
+    id: 'svc_lineup',
+    name: 'Lineup / Edge Up',
+    description:
+      'Sharp, clean lines on your hairline, temples, and neck for a fresh, polished finish.',
+    duration: 20,
+    price: 20,
+    category: 'haircut',
+    is_active: true,
+    display_order: 3,
+  },
+  {
+    id: 'svc_combo',
+    name: 'Haircut + Beard Combo',
+    description:
+      'The full package — precision haircut combined with a beard trim and lineup for the complete look.',
+    duration: 70,
+    price: 55,
+    category: 'combo',
+    is_active: true,
+    display_order: 4,
+  },
+  {
+    id: 'svc_kids',
+    name: "Kids Cut (12 & Under)",
+    description:
+      'Gentle, patient haircuts for the little ones. We make sure every kid leaves smiling.',
+    duration: 30,
+    price: 25,
+    category: 'kids',
+    is_active: true,
+    display_order: 5,
+  },
+  {
+    id: 'svc_premium',
+    name: 'Premium Grooming Package',
+    description:
+      'The ultimate experience: haircut, hot towel shave, beard sculpting, scalp massage, and styling.',
+    duration: 90,
+    price: 75,
+    category: 'premium',
+    is_active: true,
+    display_order: 6,
+  },
+]
+
+// ─── Barbers ─────────────────────────────────────────────────────────────────
+
+export const BARBERS: Barber[] = [
+  {
+    id: 'brb_aryan',
+    user_id: 'usr_aryan',
+    name: 'Aryan',
+    bio: 'Founder of Aryan Blendz with over 8 years of experience. Specializes in fades, skin taper cuts, and creative hair designs. Known for his attention to detail and clean, sharp work.',
+    specialties: ['Skin Fades', 'Tapers', 'Hair Designs', 'Beard Sculpting'],
+    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+    is_active: true,
+    instagram: '@aryanblendz',
+    years_experience: 8,
+    rating: 4.9,
+    total_reviews: 312,
+  },
+  {
+    id: 'brb_marcus',
+    user_id: 'usr_marcus',
+    name: 'Marcus',
+    bio: 'A master of classic cuts and modern styles. Marcus brings 6 years of experience to every client, with a passion for curly hair textures and textured fades.',
+    specialties: ['Classic Cuts', 'Textured Fades', 'Curly Hair', 'Hot Towel Shave'],
+    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop',
+    is_active: true,
+    instagram: '@marcus_cuts',
+    years_experience: 6,
+    rating: 4.8,
+    total_reviews: 228,
+  },
+  {
+    id: 'brb_jerome',
+    user_id: 'usr_jerome',
+    name: 'Jerome',
+    bio: 'Jerome is the go-to guy for premium grooming and straight razor shaves. His precision work and calm demeanor put every client at ease. 5 years in the game and still getting better.',
+    specialties: ['Straight Razor Shave', 'Low Fades', 'Beard Grooming', 'Kids Cuts'],
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+    is_active: true,
+    instagram: '@jerome_shaves',
+    years_experience: 5,
+    rating: 4.8,
+    total_reviews: 184,
+  },
+  {
+    id: 'brb_darius',
+    user_id: 'usr_darius',
+    name: 'Darius',
+    bio: "New to the Aryan Blendz team but no stranger to the craft. Darius trained at one of New York's top barbering schools and brings fresh energy, creative designs, and solid fundamentals.",
+    specialties: ['Creative Designs', 'High Fades', 'Afro Styling', 'Lineups'],
+    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop',
+    is_active: true,
+    instagram: '@darius_blendz',
+    years_experience: 3,
+    rating: 4.7,
+    total_reviews: 96,
+  },
+]
+
+// ─── Business Hours ───────────────────────────────────────────────────────────
+
+export const BUSINESS_HOURS: Record<
+  number,
+  { label: string; open: string; close: string; isOpen: boolean }
+> = {
+  0: { label: 'Sunday',    open: '10:00', close: '17:00', isOpen: true },
+  1: { label: 'Monday',    open: '09:00', close: '19:00', isOpen: true },
+  2: { label: 'Tuesday',   open: '09:00', close: '19:00', isOpen: true },
+  3: { label: 'Wednesday', open: '09:00', close: '19:00', isOpen: true },
+  4: { label: 'Thursday',  open: '09:00', close: '19:00', isOpen: true },
+  5: { label: 'Friday',    open: '09:00', close: '20:00', isOpen: true },
+  6: { label: 'Saturday',  open: '09:00', close: '18:00', isOpen: true },
+}
+
+// ─── Booking Steps ────────────────────────────────────────────────────────────
+
+export const BOOKING_STEPS: Array<{
+  id: BookingStep
+  label: string
+  description: string
+  step: number
+}> = [
+  {
+    id: 'service',
+    label: 'Choose Service',
+    description: 'Select the service you want',
+    step: 1,
+  },
+  {
+    id: 'barber',
+    label: 'Pick a Barber',
+    description: 'Choose your preferred barber',
+    step: 2,
+  },
+  {
+    id: 'datetime',
+    label: 'Date & Time',
+    description: 'Select your appointment slot',
+    step: 3,
+  },
+  {
+    id: 'details',
+    label: 'Your Details',
+    description: 'Enter your contact information',
+    step: 4,
+  },
+  {
+    id: 'payment',
+    label: 'Payment',
+    description: 'Secure deposit to confirm',
+    step: 5,
+  },
+  {
+    id: 'confirmation',
+    label: 'Confirmed',
+    description: 'Booking confirmed',
+    step: 6,
+  },
+]
+
+// ─── Time Slots ───────────────────────────────────────────────────────────────
+
+function generateTimeSlots(
+  startHour: number,
+  endHour: number,
+  intervalMinutes: number = 30,
+): TimeSlot[] {
+  const slots: TimeSlot[] = []
+  let current = startHour * 60
+  const end = endHour * 60
+
+  while (current < end) {
+    const hours = Math.floor(current / 60)
+    const minutes = current % 60
+    const time = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+    slots.push({ time, available: true })
+    current += intervalMinutes
+  }
+
+  return slots
+}
+
+export const TIME_SLOTS: TimeSlot[] = generateTimeSlots(9, 19, 30)
+
+// ─── Status Colors ────────────────────────────────────────────────────────────
+
+export const STATUS_COLORS: Record<
+  AppointmentStatus,
+  { bg: string; text: string; border: string; dot: string }
+> = {
+  pending: {
+    bg:     'bg-yellow-500/10',
+    text:   'text-yellow-400',
+    border: 'border-yellow-500/30',
+    dot:    'bg-yellow-400',
+  },
+  confirmed: {
+    bg:     'bg-blue-500/10',
+    text:   'text-blue-400',
+    border: 'border-blue-500/30',
+    dot:    'bg-blue-400',
+  },
+  completed: {
+    bg:     'bg-green-500/10',
+    text:   'text-green-400',
+    border: 'border-green-500/30',
+    dot:    'bg-green-400',
+  },
+  cancelled: {
+    bg:     'bg-red-500/10',
+    text:   'text-red-400',
+    border: 'border-red-500/30',
+    dot:    'bg-red-400',
+  },
+  no_show: {
+    bg:     'bg-gray-500/10',
+    text:   'text-gray-400',
+    border: 'border-gray-500/30',
+    dot:    'bg-gray-400',
+  },
+}
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
+
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    id: 'test_1',
+    author: 'Jordan Williams',
+    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&h=200&fit=crop',
+    rating: 5,
+    content:
+      "Best barbershop I've been to in the city, no cap. Aryan got me right every single time. The fade is always clean, the beard shape is on point, and the whole vibe in there is just different. Booked online in like 2 minutes — no waiting around. This is my spot for life.",
+    date: '2026-02-18',
+    service: 'Haircut + Beard Combo',
+  },
+  {
+    id: 'test_2',
+    author: 'Malik Thompson',
+    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&h=200&fit=crop',
+    rating: 5,
+    content:
+      "Marcus is an absolute artist with the clippers. I have pretty thick, curly hair and most barbers mess it up, but he knew exactly what to do. Walked out looking fresh as hell. The booking system is super easy — picked my barber, my time, done. Highly recommend.",
+    date: '2026-01-30',
+    service: 'Classic Haircut',
+  },
+  {
+    id: 'test_3',
+    author: 'Deshawn Carter',
+    avatar: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&h=200&fit=crop',
+    rating: 5,
+    content:
+      "Tried the Premium Grooming Package for my birthday and it was worth every penny. Hot towel shave, scalp massage, the works. Jerome has incredibly steady hands and the straight razor shave was next level. Left feeling like a whole new person. This place is top tier.",
+    date: '2026-03-05',
+    service: 'Premium Grooming Package',
+  },
+  {
+    id: 'test_4',
+    author: 'Chris Okonkwo',
+    avatar: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&h=200&fit=crop',
+    rating: 5,
+    content:
+      "I'm super particular about my hair and I've gone through too many barbers who don't listen. Darius actually took time to understand what I wanted and then delivered something even better than I imagined. The hair design he added was clean. Already booked my next appointment.",
+    date: '2026-03-12',
+    service: 'Classic Haircut',
+  },
+]
+
+// ─── Service Categories ───────────────────────────────────────────────────────
+
+export const SERVICE_CATEGORIES: SelectOption[] = [
+  { label: 'Haircut',   value: 'haircut' },
+  { label: 'Beard',     value: 'beard' },
+  { label: 'Combo',     value: 'combo' },
+  { label: 'Kids',      value: 'kids' },
+  { label: 'Premium',   value: 'premium' },
+  { label: 'Other',     value: 'other' },
+]
+
+// ─── Days of the Week ─────────────────────────────────────────────────────────
+
+export const DAYS_OF_WEEK: Array<{ value: number; label: string; short: string }> = [
+  { value: 0, label: 'Sunday',    short: 'Sun' },
+  { value: 1, label: 'Monday',    short: 'Mon' },
+  { value: 2, label: 'Tuesday',   short: 'Tue' },
+  { value: 3, label: 'Wednesday', short: 'Wed' },
+  { value: 4, label: 'Thursday',  short: 'Thu' },
+  { value: 5, label: 'Friday',    short: 'Fri' },
+  { value: 6, label: 'Saturday',  short: 'Sat' },
+]
+
+// ─── App Metadata ─────────────────────────────────────────────────────────────
+
+export const APP_NAME = 'Aryan Blendz'
+export const APP_DESCRIPTION =
+  'Premium barbershop experience. Book your appointment online in seconds.'
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+export const CONTACT_EMAIL  = 'hello@aryanblendz.com'
+export const CONTACT_PHONE  = '(555) 012-3456'
+export const SHOP_ADDRESS   = '123 Main Street, New York, NY 10001'
+export const DEPOSIT_AMOUNT = 10
