@@ -1,32 +1,32 @@
 'use server'
 
 // Server Action: createBooking
-// Called from the booking page when the customer clicks "Confirm Booking"
 // 1. Validates input
-// 2. Saves to Supabase
-// 3. Sends confirmation email via Resend
-// 4. Returns confirmation code to redirect to /booking/confirmation
+// 2. Resolves barber + service UUIDs from the DB (static IDs → real UUIDs)
+// 3. Finds or creates the customer row
+// 4. Checks for double-booking
+// 5. Inserts the appointment
+// 6. Sends confirmation email (non-blocking)
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendBookingConfirmation } from '@/lib/email/send'
 import { generateConfirmationCode } from '@/lib/utils'
 import { z } from 'zod'
 
-// ─── Validation schema ─────────────────────────────────────────────────────
-
 const bookingSchema = z.object({
-  serviceId:     z.string().min(1),
-  barberId:      z.string().min(1),
-  date:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  time:          z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format'),
-  customerName:  z.string().min(2).max(60),
-  customerEmail: z.string().email(),
-  customerPhone: z.string().min(7).max(20),
-  notes:         z.string().max(300).optional(),
-  serviceName:   z.string(),
-  servicePrice:  z.number().positive(),
+  serviceId:       z.string().min(1),
+  barberId:        z.string().min(1),
+  date:            z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  time:            z.string().regex(/^\d{2}:\d{2}$/),
+  customerName:    z.string().min(2).max(60),
+  customerEmail:   z.string().email(),
+  customerPhone:   z.string().min(7).max(20),
+  notes:           z.string().max(300).optional(),
+  // Display values passed from the client (for email + fallback)
+  serviceName:     z.string(),
+  servicePrice:    z.number().positive(),
   serviceDuration: z.number().positive(),
-  barberName:    z.string(),
+  barberName:      z.string(),
 })
 
 export type BookingInput = z.infer<typeof bookingSchema>
@@ -37,48 +37,91 @@ export interface BookingResult {
   error?: string
 }
 
-// ─── Server Action ─────────────────────────────────────────────────────────
-
 export async function createBooking(input: BookingInput): Promise<BookingResult> {
-  // 1. Validate
   const parsed = bookingSchema.safeParse(input)
   if (!parsed.success) {
-    return { success: false, error: parsed.error.message }
+    return { success: false, error: 'Invalid booking data. Please check your details.' }
   }
 
   const data = parsed.data
   const confirmationCode = generateConfirmationCode()
 
-  try {
-    const supabase = await createClient()
+  // Use admin client — bypasses RLS so we can write from a guest booking
+  const supabase = createAdminClient()
 
-    // 2. Find or create customer
+  try {
+    // ── 1. Resolve service UUID ──────────────────────────────────────────────
+    // The booking components use local IDs ('1', 'svc_haircut', etc.)
+    // Match against the DB by name instead.
+    const { data: serviceRow, error: serviceErr } = await supabase
+      .from('services')
+      .select('id, name, price, duration')
+      .ilike('name', `%${data.serviceName}%`)
+      .eq('is_active', true)
+      .limit(1)
+      .single()
+
+    if (serviceErr || !serviceRow) {
+      console.error('[createBooking] service lookup:', serviceErr)
+      return { success: false, error: 'Service not found. Please try again.' }
+    }
+
+    // ── 2. Resolve barber UUID ───────────────────────────────────────────────
+    let barberRow: { id: string; name: string } | null = null
+
+    if (data.barberId !== 'any') {
+      // Try matching by name (e.g. barberName = 'Aryan')
+      const { data: found } = await supabase
+        .from('barbers')
+        .select('id, name')
+        .ilike('name', data.barberName)
+        .eq('is_active', true)
+        .limit(1)
+        .single()
+
+      barberRow = found
+    }
+
+    // If "any" or no match, grab the first active barber
+    if (!barberRow) {
+      const { data: fallback } = await supabase
+        .from('barbers')
+        .select('id, name')
+        .eq('is_active', true)
+        .limit(1)
+        .single()
+
+      barberRow = fallback
+    }
+
+    if (!barberRow) {
+      return { success: false, error: 'No barbers available. Please contact us directly.' }
+    }
+
+    // ── 3. Find or create customer ───────────────────────────────────────────
     let customerId: string
 
-    const { data: existingCustomer } = await supabase
+    const { data: existing } = await supabase
       .from('customers')
       .select('id, total_visits')
       .eq('email', data.customerEmail)
-      .single()
+      .maybeSingle()
 
-    if (existingCustomer) {
-      customerId = existingCustomer.id
-
-      // Update total_visits + last_visit
+    if (existing) {
+      customerId = existing.id
       await supabase
         .from('customers')
         .update({
-          total_visits: ((existingCustomer.total_visits as number) ?? 0) + 1,
+          total_visits: ((existing.total_visits as number) ?? 0) + 1,
           last_visit: data.date,
           phone: data.customerPhone,
         })
         .eq('id', customerId)
     } else {
-      // Create new customer
-      const { data: newCustomer, error: customerError } = await supabase
+      const { data: created, error: customerErr } = await supabase
         .from('customers')
         .insert({
-          name:  data.customerName,
+          name: data.customerName,
           email: data.customerEmail,
           phone: data.customerPhone,
           total_visits: 1,
@@ -87,83 +130,71 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
         .select('id')
         .single()
 
-      if (customerError || !newCustomer) {
-        console.error('[createBooking] Failed to create customer:', customerError)
+      if (customerErr || !created) {
+        console.error('[createBooking] customer insert:', customerErr)
         return { success: false, error: 'Failed to save your details. Please try again.' }
       }
-
-      customerId = newCustomer.id
+      customerId = created.id
     }
 
-    // 3. Check for double-booking (same barber, date, time)
-    if (data.barberId !== 'any') {
-      const { data: conflict } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('barber_id', data.barberId)
-        .eq('date', data.date)
-        .eq('time', data.time)
-        .in('status', ['pending', 'confirmed'])
-        .maybeSingle()
+    // ── 4. Check for double-booking ──────────────────────────────────────────
+    const { data: conflict } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('barber_id', barberRow.id)
+      .eq('date', data.date)
+      .eq('time', data.time)
+      .in('status', ['pending', 'confirmed'])
+      .maybeSingle()
 
-      if (conflict) {
-        return {
-          success: false,
-          error: 'That time slot was just booked. Please choose a different time.',
-        }
+    if (conflict) {
+      return {
+        success: false,
+        error: 'That time slot was just booked. Please choose a different time.',
       }
     }
 
-    // 4. Resolve barber ID (if "any", pick first available — simplified here)
-    const barberId =
-      data.barberId === 'any'
-        ? (await supabase.from('barbers').select('id').eq('is_active', true).limit(1).single()).data?.id ?? data.barberId
-        : data.barberId
-
-    // 5. Insert appointment
-    const { data: appointment, error: appointmentError } = await supabase
+    // ── 5. Insert appointment ────────────────────────────────────────────────
+    const { error: apptErr } = await supabase
       .from('appointments')
       .insert({
         customer_id:       customerId,
-        barber_id:         barberId,
-        service_id:        data.serviceId,
+        barber_id:         barberRow.id,
+        service_id:        serviceRow.id,
         date:              data.date,
         time:              data.time,
         status:            'confirmed',
         notes:             data.notes ?? null,
-        total_price:       data.servicePrice,
+        total_price:       serviceRow.price,
         deposit_paid:      false,
         confirmation_code: confirmationCode,
       })
-      .select('id')
-      .single()
 
-    if (appointmentError || !appointment) {
-      console.error('[createBooking] Failed to create appointment:', appointmentError)
+    if (apptErr) {
+      console.error('[createBooking] appointment insert:', apptErr)
       return { success: false, error: 'Failed to save your appointment. Please try again.' }
     }
 
-    // 6. Send confirmation email (non-blocking — don't fail booking if email fails)
+    // ── 6. Send confirmation email (non-blocking) ────────────────────────────
     try {
       await sendBookingConfirmation({
         customerName:    data.customerName,
         customerEmail:   data.customerEmail,
         confirmationCode,
-        serviceName:     data.serviceName,
-        serviceDuration: data.serviceDuration,
-        servicePrice:    data.servicePrice,
-        barberName:      data.barberName,
+        serviceName:     serviceRow.name,
+        serviceDuration: serviceRow.duration as number,
+        servicePrice:    Number(serviceRow.price),
+        barberName:      barberRow.name,
         date:            data.date,
         time:            data.time,
       })
-    } catch (emailError) {
-      // Email failed — booking is still saved. Log and continue.
-      console.error('[createBooking] Email send failed (non-fatal):', emailError)
+    } catch (emailErr) {
+      console.error('[createBooking] email (non-fatal):', emailErr)
     }
 
     return { success: true, confirmationCode }
-  } catch (error) {
-    console.error('[createBooking] Unexpected error:', error)
+  } catch (err) {
+    console.error('[createBooking] unexpected:', err)
     return { success: false, error: 'Something went wrong. Please try again.' }
   }
 }

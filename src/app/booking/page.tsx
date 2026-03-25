@@ -77,7 +77,6 @@ function BookingPageInner() {
   async function handleConfirm() {
     setIsSubmitting(true)
     try {
-      // Look up service and barber details for email + DB
       const service = SERVICES.find((s) => s.id === booking.serviceId)
       const barber  = BARBERS.find((b) => b.id === booking.barberId)
 
@@ -90,8 +89,8 @@ function BookingPageInner() {
         customerEmail:   booking.customerEmail,
         customerPhone:   booking.customerPhone,
         notes:           booking.notes,
-        serviceName:     service?.name ?? booking.serviceId,
-        servicePrice:    service?.price ?? 0,
+        serviceName:     service?.name     ?? booking.serviceId,
+        servicePrice:    service?.price    ?? 0,
         serviceDuration: service?.duration ?? 30,
         barberName:      booking.barberId === 'any' ? 'Any Available' : (barber?.name ?? 'Your Barber'),
       })
@@ -101,7 +100,6 @@ function BookingPageInner() {
         return
       }
 
-      // Redirect to confirmation page with all display data as URL params
       const params = new URLSearchParams({
         code:    result.confirmationCode!,
         service: booking.serviceId,
@@ -126,24 +124,19 @@ function BookingPageInner() {
 
   return (
     <div className="min-h-screen bg-charcoal-950 flex flex-col">
-      {/* Header */}
       <header className="border-b border-white/6 bg-charcoal-950/80 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 group">
             <span className="text-xl font-display font-bold text-gradient-gold">Aryan Blendz</span>
           </a>
-          <div className="text-white/30 text-sm">
-            Step {step} of 5
-          </div>
+          <div className="text-white/30 text-sm">Step {step} of 5</div>
         </div>
       </header>
 
-      {/* Step indicator */}
       <div className="max-w-3xl mx-auto w-full px-4">
         <StepIndicator currentStep={step} />
       </div>
 
-      {/* Content */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 pb-8">
         <div className="min-h-[400px]">
           {step === 1 && (
@@ -169,10 +162,10 @@ function BookingPageInner() {
           {step === 4 && (
             <CustomerForm
               values={{
-                customerName: booking.customerName,
+                customerName:  booking.customerName,
                 customerEmail: booking.customerEmail,
                 customerPhone: booking.customerPhone,
-                notes: booking.notes,
+                notes:         booking.notes,
               }}
               onChange={updateBooking}
               onValidChange={handleCustomerValidChange}
@@ -187,19 +180,12 @@ function BookingPageInner() {
           )}
         </div>
 
-        {/* Navigation */}
         {step < 5 && (
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/6">
-            <Button
-              variant="ghost"
-              onClick={handleBack}
-              disabled={step === 1}
-              className="gap-2"
-            >
+            <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="gap-2">
               <ChevronLeft className="w-4 h-4" />
               Back
             </Button>
-
             <div className="flex items-center gap-2">
               {!ready && step !== 4 && (
                 <p className="text-white/30 text-xs hidden sm:block">
@@ -208,11 +194,7 @@ function BookingPageInner() {
                   {step === 3 && 'Select a date and time to continue'}
                 </p>
               )}
-              <Button
-                onClick={handleNext}
-                disabled={!ready}
-                className="gap-2"
-              >
+              <Button onClick={handleNext} disabled={!ready} className="gap-2">
                 {step === 4 ? 'Review Booking' : 'Continue'}
                 <ChevronRight className="w-4 h-4" />
               </Button>
