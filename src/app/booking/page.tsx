@@ -10,7 +10,10 @@ import { BarberSelector } from '@/components/booking/BarberSelector'
 import { DateTimeSelector } from '@/components/booking/DateTimeSelector'
 import { CustomerForm } from '@/components/booking/CustomerForm'
 import { BookingSummary } from '@/components/booking/BookingSummary'
-import { generateConfirmationCode, sleep } from '@/lib/utils'
+import { toast } from 'sonner'
+import { createBooking } from '@/app/actions/booking'
+import { SERVICES } from '@/components/booking/ServiceSelector'
+import { BARBERS } from '@/components/booking/BarberSelector'
 
 interface BookingData {
   serviceId: string
@@ -74,20 +77,46 @@ function BookingPageInner() {
   async function handleConfirm() {
     setIsSubmitting(true)
     try {
-      await sleep(1500)
-      const code = generateConfirmationCode()
+      // Look up service and barber details for email + DB
+      const service = SERVICES.find((s) => s.id === booking.serviceId)
+      const barber  = BARBERS.find((b) => b.id === booking.barberId)
+
+      const result = await createBooking({
+        serviceId:       booking.serviceId,
+        barberId:        booking.barberId,
+        date:            booking.date,
+        time:            booking.time,
+        customerName:    booking.customerName,
+        customerEmail:   booking.customerEmail,
+        customerPhone:   booking.customerPhone,
+        notes:           booking.notes,
+        serviceName:     service?.name ?? booking.serviceId,
+        servicePrice:    service?.price ?? 0,
+        serviceDuration: service?.duration ?? 30,
+        barberName:      booking.barberId === 'any' ? 'Any Available' : (barber?.name ?? 'Your Barber'),
+      })
+
+      if (!result.success) {
+        toast.error(result.error ?? 'Booking failed. Please try again.')
+        return
+      }
+
+      // Redirect to confirmation page with all display data as URL params
       const params = new URLSearchParams({
-        code,
+        code:    result.confirmationCode!,
         service: booking.serviceId,
-        barber: booking.barberId,
-        date: booking.date,
-        time: booking.time,
-        name: booking.customerName,
-        email: booking.customerEmail,
-        phone: booking.customerPhone,
+        barber:  booking.barberId,
+        date:    booking.date,
+        time:    booking.time,
+        name:    booking.customerName,
+        email:   booking.customerEmail,
+        phone:   booking.customerPhone,
       })
       if (booking.notes) params.set('notes', booking.notes)
       router.push(`/booking/confirmation?${params.toString()}`)
+    } catch (err) {
+      console.error('[handleConfirm]', err)
+      toast.error('Something went wrong. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
