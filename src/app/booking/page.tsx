@@ -123,14 +123,15 @@ function BookingPageInner() {
       }
 
       const params = new URLSearchParams({
-        code:    result.confirmationCode!,
-        service: booking.serviceId,
-        barber:  'aryan',
-        date:    booking.date,
-        time:    booking.time,
-        name:    booking.customerName,
-        email:   booking.customerEmail,
-        phone:   booking.customerPhone,
+        code:        result.confirmationCode!,
+        date:        booking.date,
+        time:        booking.time,
+        name:        booking.customerName,
+        email:       booking.customerEmail,
+        phone:       booking.customerPhone,
+        svcName:     booking.serviceName,
+        svcPrice:    String(booking.servicePrice),
+        svcDuration: String(booking.serviceDuration),
       })
       if (booking.notes) params.set('notes', booking.notes)
       router.push(`/booking/confirmation?${params.toString()}`)

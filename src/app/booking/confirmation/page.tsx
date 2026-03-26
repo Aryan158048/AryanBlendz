@@ -7,27 +7,23 @@ import { Calendar, Clock, Scissors, User, CheckCircle2, Share2, ArrowLeft, Exter
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { SERVICES } from '@/components/booking/ServiceSelector'
-import { BARBERS } from '@/components/booking/BarberSelector'
 import { formatTime, getDurationLabel } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 
 function ConfirmationContent() {
   const params = useSearchParams()
 
-  const code = params.get('code') ?? 'AB-UNKNOWN'
-  const serviceId = params.get('service') ?? ''
-  const barberId = params.get('barber') ?? ''
-  const date = params.get('date') ?? ''
-  const time = params.get('time') ?? ''
-  const name = params.get('name') ?? ''
-  const email = params.get('email') ?? ''
-  const phone = params.get('phone') ?? ''
-  const notes = params.get('notes') ?? ''
-
-  const service = SERVICES.find((s) => s.id === serviceId)
-  const barber = BARBERS.find((b) => b.id === barberId)
-  const barberName = barberId === 'any' ? 'Any Available' : barber?.name ?? 'Your Barber'
+  const code        = params.get('code')     ?? 'AB-UNKNOWN'
+  const date        = params.get('date')     ?? ''
+  const time        = params.get('time')     ?? ''
+  const name        = params.get('name')     ?? ''
+  const email       = params.get('email')    ?? ''
+  const phone       = params.get('phone')    ?? ''
+  const notes       = params.get('notes')    ?? ''
+  const serviceName = params.get('svcName')  ?? params.get('service') ?? ''
+  const servicePrice    = Number(params.get('svcPrice')    ?? 0)
+  const serviceDuration = Number(params.get('svcDuration') ?? 0)
+  const barberName  = 'Aryan'
 
   const formattedDate = date ? format(parseISO(date), 'EEEE, MMMM d, yyyy') : ''
   const formattedTime = time ? formatTime(time) : ''
@@ -45,11 +41,11 @@ function ConfirmationContent() {
   }
 
   function handleAddToCalendar() {
-    if (!date || !time || !service) return
+    if (!date || !time) return
     const [year, month, day] = date.split('-').map(Number)
     const [hour, minute] = time.split(':').map(Number)
     const start = new Date(year, month - 1, day, hour, minute)
-    const end = new Date(start.getTime() + service.duration * 60 * 1000)
+    const end = new Date(start.getTime() + (serviceDuration || 60) * 60 * 1000)
 
     const pad = (n: number) => String(n).padStart(2, '0')
     const fmt = (d: Date) =>
@@ -61,7 +57,7 @@ function ConfirmationContent() {
       'BEGIN:VEVENT',
       `DTSTART:${fmt(start)}`,
       `DTEND:${fmt(end)}`,
-      `SUMMARY:${service.name} at Aryan Blendz`,
+      `SUMMARY:${serviceName} at Aryan Blendz`,
       `DESCRIPTION:Confirmation code: ${code}\\nBarber: ${barberName}`,
       'LOCATION:Judson Suites\\, 103 Davidson Rd\\, Piscataway\\, NJ 08854',
       `UID:${code}@aryanblendz.com`,
@@ -169,9 +165,9 @@ function ConfirmationContent() {
               </div>
               <div>
                 <p className="text-white/40 text-xs">Service</p>
-                <p className="text-white font-medium">{service?.name ?? serviceId}</p>
-                {service && (
-                  <p className="text-white/30 text-xs mt-0.5">{getDurationLabel(service.duration)} · ${service.price}</p>
+                <p className="text-white font-medium">{serviceName}</p>
+                {serviceDuration > 0 && (
+                  <p className="text-white/30 text-xs mt-0.5">{getDurationLabel(serviceDuration)}{servicePrice > 0 ? ` · $${servicePrice}` : ''}</p>
                 )}
               </div>
             </div>
