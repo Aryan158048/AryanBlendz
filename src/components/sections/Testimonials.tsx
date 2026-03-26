@@ -70,7 +70,7 @@ export default function Testimonials() {
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4"
             style={{ fontFamily: 'var(--font-playfair), "Playfair Display", Georgia, serif' }}
           >
-            What Our Clients Say
+            What Clients Say
           </h2>
           <div className="flex items-center justify-center gap-2 mt-5">
             <span className="h-px w-12 bg-gold-500/40" />

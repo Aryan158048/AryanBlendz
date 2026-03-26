@@ -42,10 +42,10 @@ export default function AboutPage() {
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10 animate-fade-in">
           <Badge className="mb-6 bg-gold-500/10 text-gold-400 border border-gold-500/20 px-4 py-1.5 text-sm">
-            Est. 2018 · New York City
+            Piscataway, NJ · Rutgers Area
           </Badge>
           <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Our{' '}
+            My{' '}
             <span className="text-gradient-gold">Story</span>
           </h1>
           <p className="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
@@ -63,23 +63,20 @@ export default function AboutPage() {
               Where It All Began
             </h2>
             <p className="text-white/60 leading-relaxed">
-              Aryan Blendz was founded in 2018 by Aryan, a barber who grew up
-              watching his father cut hair in the back of a cramped apartment in
-              Queens. From those humble beginnings, he developed a love for the
-              craft — not just as a job, but as a form of self-expression and
-              community.
+              I&apos;ve been cutting hair for 8+ years — started young, kept going
+              because I genuinely love the craft. What began as cutting friends and
+              family grew into something real: a personal brand built on precision,
+              consistency, and actually caring about how you leave looking.
             </p>
             <p className="text-white/60 leading-relaxed">
-              After training under some of New York&apos;s most respected master
-              barbers and cutting in shops across the city, Aryan opened his own
-              space with a simple mission: give people the premium experience they
-              deserve without the attitude that sometimes comes with it.
+              I cut out of Judson Suites in Piscataway, right near Rutgers. My setup
+              is private, clean, and focused — no loud shop, no rush, no distractions.
+              When you&apos;re in my chair, you have my complete attention.
             </p>
             <p className="text-white/60 leading-relaxed">
-              Today, Aryan Blendz is home to four exceptional barbers, each
-              bringing their own unique style and specialty to the chair. We&apos;ve
-              served thousands of clients, built a loyal community, and earned a
-              reputation as one of New York&apos;s go-to spots for serious grooming.
+              I&apos;ve served hundreds of clients and built a loyal following by keeping
+              it simple: show up on time, know what you&apos;re doing, and make sure
+              every person walks out looking their best. That&apos;s the Aryan Blendz standard.
             </p>
           </div>
           <div className="relative">
@@ -92,7 +89,7 @@ export default function AboutPage() {
                   <div className="text-white/50 text-lg">Years of Excellence</div>
                   <div className="mt-6 grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <div className="text-3xl font-bold text-gold-400">3K+</div>
+                      <div className="text-3xl font-bold text-gold-400">500+</div>
                       <div className="text-white/30 text-xs mt-1">Happy Clients</div>
                     </div>
                     <div>
@@ -100,8 +97,8 @@ export default function AboutPage() {
                       <div className="text-white/30 text-xs mt-1">Avg Rating</div>
                     </div>
                     <div>
-                      <div className="text-3xl font-bold text-gold-400">4</div>
-                      <div className="text-white/30 text-xs mt-1">Expert Barbers</div>
+                      <div className="text-3xl font-bold text-gold-400">1</div>
+                      <div className="text-white/30 text-xs mt-1">Dedicated Barber</div>
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-gold-400">6</div>

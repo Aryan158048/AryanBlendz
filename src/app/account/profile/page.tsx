@@ -23,13 +23,6 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
@@ -52,7 +45,6 @@ const profileSchema = z.object({
     .string()
     .min(7, 'Please enter a valid phone number')
     .regex(/^\+?[\d\s\-(). ]+$/, 'Invalid phone number format'),
-  preferredBarber: z.string().optional(),
 })
 type ProfileFormData = z.infer<typeof profileSchema>
 
@@ -72,15 +64,6 @@ const passwordSchema = z
   })
 type PasswordFormData = z.infer<typeof passwordSchema>
 
-/* ── Barbers list ────────────────────────────────────────────────────── */
-const BARBERS = [
-  { value: 'no_preference', label: 'No preference' },
-  { value: 'aryan', label: 'Aryan' },
-  { value: 'marcus', label: 'Marcus' },
-  { value: 'jordan', label: 'Jordan' },
-  { value: 'darius', label: 'Darius' },
-]
-
 /* ── Component ───────────────────────────────────────────────────────── */
 export default function ProfilePage() {
   const router = useRouter()
@@ -90,7 +73,6 @@ export default function ProfilePage() {
   const [showCurrentPw, setShowCurrentPw] = React.useState(false)
   const [showNewPw, setShowNewPw] = React.useState(false)
   const [showConfirmPw, setShowConfirmPw] = React.useState(false)
-  const [preferredBarber, setPreferredBarber] = React.useState('no_preference')
 
   /* Profile form */
   const {
@@ -131,18 +113,9 @@ export default function ProfilePage() {
         resetProfile({
           fullName: meta.full_name ?? '',
           phone: meta.phone ?? '',
-          preferredBarber: meta.preferred_barber ?? 'no_preference',
         })
-        setPreferredBarber(meta.preferred_barber ?? 'no_preference')
       } catch {
-        // Dev mode — populate with mock data
-        setUserEmail('jordan@example.com')
-        resetProfile({
-          fullName: 'Jordan Williams',
-          phone: '(555) 234-5678',
-          preferredBarber: 'aryan',
-        })
-        setPreferredBarber('aryan')
+        toast.error('Failed to load profile. Please refresh.')
       }
     }
 
@@ -151,19 +124,14 @@ export default function ProfilePage() {
 
   /* Save profile */
   const onSaveProfile = async (data: ProfileFormData) => {
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: data.fullName,
-          phone: data.phone,
-          preferred_barber: preferredBarber,
-        },
-      })
-      if (error) throw error
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({
+      data: { full_name: data.fullName, phone: data.phone },
+    })
+    if (error) {
+      toast.error('Failed to update profile')
+    } else {
       toast.success('Profile updated successfully!')
-    } catch {
-      toast.success('Profile updated!') // graceful in dev
     }
   }
 
@@ -186,9 +154,10 @@ export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
     try {
-      // In production: call a server action / API route to delete the user
-      // supabase.auth.admin.deleteUser requires service role key (server-side only)
-      await new Promise((r) => setTimeout(r, 1200))
+      const res = await fetch('/api/auth/delete', { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      const supabase = createClient()
+      await supabase.auth.signOut()
       toast.success('Account deleted. Goodbye!')
       router.push('/')
     } catch {
@@ -314,28 +283,6 @@ export default function ProfilePage() {
                   {profileErrors.phone.message}
                 </p>
               )}
-            </div>
-
-            {/* Preferred Barber */}
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5 text-white/70">
-                Preferred Barber
-              </Label>
-              <Select
-                value={preferredBarber}
-                onValueChange={setPreferredBarber}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a barber" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BARBERS.map((b) => (
-                    <SelectItem key={b.value} value={b.value}>
-                      {b.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="pt-2 flex justify-end">

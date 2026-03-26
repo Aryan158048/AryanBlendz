@@ -86,53 +86,14 @@ export const BARBERS: Barber[] = [
     id: 'brb_aryan',
     user_id: 'usr_aryan',
     name: 'Aryan',
-    bio: 'Founder of Aryan Blendz with over 8 years of experience. Specializes in fades, skin taper cuts, and creative hair designs. Known for his attention to detail and clean, sharp work.',
-    specialties: ['Skin Fades', 'Tapers', 'Hair Designs', 'Beard Sculpting'],
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+    bio: 'Founder of Aryan Blendz with over 8 years of experience. Specializes in fades, skin taper cuts, and creative hair designs. Known for his obsessive attention to detail, clean lines, and making every client look their absolute best.',
+    specialties: ['Skin Fades', 'Tapers', 'Hair Designs', 'Beard Sculpting', 'Lineups', 'Hot Towel Shave'],
+    avatar_url: '/images/aryan.jpg',
     is_active: true,
     instagram: '@aryanblendz',
     years_experience: 8,
     rating: 4.9,
     total_reviews: 312,
-  },
-  {
-    id: 'brb_marcus',
-    user_id: 'usr_marcus',
-    name: 'Marcus',
-    bio: 'A master of classic cuts and modern styles. Marcus brings 6 years of experience to every client, with a passion for curly hair textures and textured fades.',
-    specialties: ['Classic Cuts', 'Textured Fades', 'Curly Hair', 'Hot Towel Shave'],
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop',
-    is_active: true,
-    instagram: '@marcus_cuts',
-    years_experience: 6,
-    rating: 4.8,
-    total_reviews: 228,
-  },
-  {
-    id: 'brb_jerome',
-    user_id: 'usr_jerome',
-    name: 'Jerome',
-    bio: 'Jerome is the go-to guy for premium grooming and straight razor shaves. His precision work and calm demeanor put every client at ease. 5 years in the game and still getting better.',
-    specialties: ['Straight Razor Shave', 'Low Fades', 'Beard Grooming', 'Kids Cuts'],
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-    is_active: true,
-    instagram: '@jerome_shaves',
-    years_experience: 5,
-    rating: 4.8,
-    total_reviews: 184,
-  },
-  {
-    id: 'brb_darius',
-    user_id: 'usr_darius',
-    name: 'Darius',
-    bio: "New to the Aryan Blendz team but no stranger to the craft. Darius trained at one of New York's top barbering schools and brings fresh energy, creative designs, and solid fundamentals.",
-    specialties: ['Creative Designs', 'High Fades', 'Afro Styling', 'Lineups'],
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop',
-    is_active: true,
-    instagram: '@darius_blendz',
-    years_experience: 3,
-    rating: 4.7,
-    total_reviews: 96,
   },
 ]
 
@@ -166,34 +127,22 @@ export const BOOKING_STEPS: Array<{
     step: 1,
   },
   {
-    id: 'barber',
-    label: 'Pick a Barber',
-    description: 'Choose your preferred barber',
-    step: 2,
-  },
-  {
     id: 'datetime',
     label: 'Date & Time',
     description: 'Select your appointment slot',
-    step: 3,
+    step: 2,
   },
   {
     id: 'details',
     label: 'Your Details',
     description: 'Enter your contact information',
-    step: 4,
-  },
-  {
-    id: 'payment',
-    label: 'Payment',
-    description: 'Secure deposit to confirm',
-    step: 5,
+    step: 3,
   },
   {
     id: 'confirmation',
-    label: 'Confirmed',
-    description: 'Booking confirmed',
-    step: 6,
+    label: 'Confirm',
+    description: 'Review and confirm booking',
+    step: 4,
   },
 ]
 
@@ -268,7 +217,7 @@ export const TESTIMONIALS: Testimonial[] = [
     avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&h=200&fit=crop',
     rating: 5,
     content:
-      "Best barbershop I've been to in the city, no cap. Aryan got me right every single time. The fade is always clean, the beard shape is on point, and the whole vibe in there is just different. Booked online in like 2 minutes — no waiting around. This is my spot for life.",
+      "Best cuts on campus, no cap. Aryan got me right every single time. The fade is always clean, the beard shape is on point, and the whole vibe is just different. Booked online in like 2 minutes — no waiting around. This is my spot for life.",
     date: '2026-02-18',
     service: 'Haircut + Beard Combo',
   },
@@ -331,9 +280,9 @@ export const DAYS_OF_WEEK: Array<{ value: number; label: string; short: string }
 
 export const APP_NAME = 'Aryan Blendz'
 export const APP_DESCRIPTION =
-  'Premium barbershop experience. Book your appointment online in seconds.'
+  'Premium cuts and fades. Book your appointment with Aryan online in seconds.'
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
 export const CONTACT_EMAIL  = 'hello@aryanblendz.com'
-export const CONTACT_PHONE  = '(555) 012-3456'
-export const SHOP_ADDRESS   = '123 Main Street, New York, NY 10001'
+export const CONTACT_PHONE  = '201-748-9849'
+export const SHOP_ADDRESS   = 'Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854'
 export const DEPOSIT_AMOUNT = 10

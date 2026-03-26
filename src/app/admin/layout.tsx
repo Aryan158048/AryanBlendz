@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Calendar,
@@ -16,9 +16,11 @@ import {
   Plus,
   ChevronRight,
   Bell,
+  LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { label: 'Dashboard',     href: '/admin',               icon: LayoutDashboard },
@@ -38,7 +40,13 @@ const pageTitles: Record<string, string> = {
   '/admin/settings':      'Settings',
 }
 
-function Sidebar({ onClose }: { onClose?: () => void }) {
+function Sidebar({ onClose, userEmail, userName, userInitial, onSignOut }: {
+  onClose?: () => void
+  userEmail: string
+  userName: string
+  userInitial: string
+  onSignOut: () => void
+}) {
   const pathname = usePathname()
 
   return (
@@ -107,15 +115,22 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
           <ArrowLeft className="w-4 h-4" />
           Back to Site
         </Link>
-        <div className="flex items-center gap-3 px-3 py-2.5">
-          <div className="w-7 h-7 rounded-full bg-gradient-gold flex items-center justify-center flex-shrink-0">
-            <span className="text-charcoal-950 text-xs font-bold font-display">A</span>
+        {userEmail && (
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <div className="w-7 h-7 rounded-full bg-gradient-gold flex items-center justify-center flex-shrink-0">
+              <span className="text-charcoal-950 text-xs font-bold font-display">
+                {userInitial}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white text-xs font-medium truncate">{userName}</div>
+              <div className="text-white/30 text-xs truncate">{userEmail}</div>
+            </div>
+            <button onClick={onSignOut} className="text-white/30 hover:text-red-400 transition-colors flex-shrink-0">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-white text-xs font-medium truncate">Aryan</div>
-            <div className="text-white/30 text-xs truncate">admin@aryanblendz.com</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -123,14 +138,36 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const [userName, setUserName] = useState('')
   const pageTitle = pageTitles[pathname] ?? 'Admin'
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email ?? '')
+        setUserName(user.user_metadata?.full_name ?? user.email ?? 'Aryan')
+      }
+    })
+  }, [])
+
+  const userInitial = userName?.[0]?.toUpperCase() ?? 'A'
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <div className="min-h-screen bg-charcoal-950 flex">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-60 flex-shrink-0 flex-col fixed inset-y-0 left-0 z-40">
-        <Sidebar />
+        <Sidebar userEmail={userEmail} userName={userName} userInitial={userInitial} onSignOut={handleSignOut} />
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -141,7 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <aside className="absolute left-0 inset-y-0 w-64 z-10" onClick={(e) => e.stopPropagation()}>
-            <Sidebar onClose={() => setSidebarOpen(false)} />
+            <Sidebar onClose={() => setSidebarOpen(false)} userEmail={userEmail} userName={userName} userInitial={userInitial} onSignOut={handleSignOut} />
           </aside>
         </div>
       )}
@@ -176,7 +213,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             </Button>
             <div className="w-8 h-8 rounded-full bg-gradient-gold flex items-center justify-center text-charcoal-950 text-xs font-bold font-display cursor-pointer">
-              A
+              {userInitial}
             </div>
           </div>
         </header>

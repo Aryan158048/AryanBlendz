@@ -67,7 +67,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h2 className="font-display text-2xl font-bold text-white">Settings</h2>
-        <p className="text-white/40 text-sm mt-1">Configure your shop settings</p>
+        <p className="text-white/40 text-sm mt-1">Manage your booking and contact info</p>
       </div>
 
       <Tabs defaultValue="shop">
@@ -76,7 +76,7 @@ export default function SettingsPage() {
             value="shop"
             className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400"
           >
-            Shop Info
+            My Info
           </TabsTrigger>
           <TabsTrigger
             value="booking"
@@ -102,7 +102,7 @@ export default function SettingsPage() {
         <TabsContent value="shop">
           <div className="glass gold-border rounded-2xl p-6 space-y-5">
             <h3 className="font-display text-lg font-bold text-white mb-1">
-              Shop Information
+              My Information
             </h3>
             <Separator className="bg-white/8" />
 

@@ -63,7 +63,7 @@ function ConfirmationContent() {
       `DTEND:${fmt(end)}`,
       `SUMMARY:${service.name} at Aryan Blendz`,
       `DESCRIPTION:Confirmation code: ${code}\\nBarber: ${barberName}`,
-      'LOCATION:Aryan Blendz Barbershop',
+      'LOCATION:Judson Suites\\, 103 Davidson Rd\\, Piscataway\\, NJ 08854',
       `UID:${code}@aryanblendz.com`,
       'END:VEVENT',
       'END:VCALENDAR',
@@ -113,7 +113,7 @@ function ConfirmationContent() {
         @keyframes confettiFall {
           0% { opacity: 0; transform: translateY(-20px) rotate(0deg) scale(0); }
           20% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(120px) rotate(${Math.random() * 360}deg) scale(1); }
+          100% { opacity: 0; transform: translateY(120px) rotate(270deg) scale(1); }
         }
         @keyframes checkPop {
           0% { transform: scale(0) rotate(-15deg); opacity: 0; }

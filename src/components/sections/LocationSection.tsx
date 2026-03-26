@@ -16,13 +16,13 @@ export default function LocationSection() {
         {/* Section header */}
         <div className="text-center mb-14">
           <p className="text-xs font-semibold tracking-[0.25em] uppercase text-gold-500 mb-3">
-            Find Us
+            Find Me
           </p>
           <h2
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-white"
             style={{ fontFamily: 'var(--font-playfair), "Playfair Display", Georgia, serif' }}
           >
-            Visit Us
+            Come See Me
           </h2>
           <div className="flex items-center justify-center gap-2 mt-5">
             <span className="h-px w-12 bg-gold-500/40" />
@@ -42,7 +42,7 @@ export default function LocationSection() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Opening Hours</h3>
-                <p className="text-xs text-white/35 mt-0.5">Walk-ins welcome</p>
+                <p className="text-xs text-white/35 mt-0.5">Appointment only</p>
               </div>
             </div>
 
@@ -91,7 +91,7 @@ export default function LocationSection() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Location</h3>
-                <p className="text-xs text-white/35 mt-0.5">New York City</p>
+                <p className="text-xs text-white/35 mt-0.5">Piscataway, NJ</p>
               </div>
             </div>
 
@@ -109,7 +109,7 @@ export default function LocationSection() {
               />
               <div className="relative flex flex-col items-center gap-1.5">
                 <MapPin size={22} className="text-gold-400" strokeWidth={2} />
-                <span className="text-xs text-white/40">123 Style Ave, New York</span>
+                <span className="text-xs text-white/40">103 Davidson Rd, Piscataway</span>
               </div>
             </div>
 
@@ -118,14 +118,14 @@ export default function LocationSection() {
               {[
                 {
                   icon: MapPin,
-                  text: '123 Style Ave, New York, NY 10001',
-                  href: 'https://maps.google.com',
+                  text: 'Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854',
+                  href: 'https://maps.google.com/maps?q=103+Davidson+Rd,+Piscataway,+NJ+08854',
                 },
-                { icon: Phone, text: '(555) 123-4567', href: 'tel:+15551234567' },
+                { icon: Phone, text: '201-748-9849', href: 'tel:+12017489849' },
                 {
                   icon: Mail,
-                  text: 'info@aryanblendz.com',
-                  href: 'mailto:info@aryanblendz.com',
+                  text: 'hello@aryanblendz.com',
+                  href: 'mailto:hello@aryanblendz.com',
                 },
               ].map(({ icon: Icon, text, href }) => (
                 <li key={text}>
@@ -148,7 +148,7 @@ export default function LocationSection() {
 
             <div className="mt-auto">
               <a
-                href="https://maps.google.com"
+                href="https://maps.google.com/maps?q=103+Davidson+Rd,+Piscataway,+NJ+08854"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-full gap-2 py-3 rounded-md text-sm font-semibold tracking-wide text-gold-400 border border-gold-500/30 hover:border-gold-500/60 hover:text-gold-300 transition-all duration-200 group"

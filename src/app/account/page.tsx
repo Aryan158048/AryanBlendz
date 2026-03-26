@@ -3,14 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  CalendarDays,
-  User,
-  Settings,
-  LogOut,
-  Scissors,
-  Plus,
-} from 'lucide-react'
+import { CalendarDays, User, Settings, LogOut, Scissors, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -19,67 +12,20 @@ import { AppointmentCard, type Appointment } from '@/components/account/Appointm
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 
-const mockUpcoming: Appointment[] = [
-  {
-    id: '1',
-    service: 'Haircut',
-    barber: 'Aryan',
-    date: '2026-04-12',
-    time: '10:00 AM',
-    status: 'confirmed',
-    price: 35,
-    confirmationCode: 'AB-7829',
-  },
-  {
-    id: '2',
-    service: 'Beard Trim',
-    barber: 'Marcus',
-    date: '2026-04-20',
-    time: '2:30 PM',
-    status: 'pending',
-    price: 25,
-    confirmationCode: 'AB-4521',
-  },
-]
+function fmt12h(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+}
 
-const mockPast: Appointment[] = [
-  {
-    id: '3',
-    service: 'Haircut + Beard',
-    barber: 'Aryan',
-    date: '2026-03-10',
-    time: '11:00 AM',
-    status: 'completed',
-    price: 55,
-    confirmationCode: 'AB-1234',
-  },
-  {
-    id: '4',
-    service: 'Premium Package',
-    barber: 'Jordan',
-    date: '2026-02-22',
-    time: '3:00 PM',
-    status: 'completed',
-    price: 75,
-    confirmationCode: 'AB-9087',
-  },
-]
+function getInitials(name: string): string {
+  return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+}
 
 interface UserProfile {
   name: string
   email: string
   initials: string
   memberSince?: string
-}
-
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('')
 }
 
 export default function AccountPage() {
@@ -91,73 +37,81 @@ export default function AccountPage() {
 
   React.useEffect(() => {
     const init = async () => {
-      try {
-        const supabase = createClient()
-        const {
-          data: { user: supabaseUser },
-        } = await supabase.auth.getUser()
+      const supabase = createClient()
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
 
-        if (!supabaseUser) {
-          router.replace('/login')
-          return
-        }
-
-        const fullName =
-          supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Guest'
-
-        setUser({
-          name: fullName,
-          email: supabaseUser.email ?? '',
-          initials: getInitials(fullName),
-          memberSince: supabaseUser.created_at,
-        })
-      } catch {
-        // Supabase not configured — use mock data for dev
-        setUser({
-          name: 'Jordan Williams',
-          email: 'jordan@example.com',
-          initials: 'JW',
-          memberSince: '2025-06-01',
-        })
-      } finally {
-        setUpcomingAppointments(mockUpcoming)
-        setPastAppointments(mockPast)
-        setIsLoading(false)
+      if (!supabaseUser) {
+        router.replace('/login')
+        return
       }
+
+      const fullName = supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Guest'
+      setUser({
+        name: fullName,
+        email: supabaseUser.email ?? '',
+        initials: getInitials(fullName),
+        memberSince: supabaseUser.created_at,
+      })
+
+      // Look up customer record by email
+      const { data: customerRow } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', supabaseUser.email)
+        .single()
+
+      if (customerRow) {
+        const today = new Date().toISOString().split('T')[0]
+
+        const { data: apts } = await supabase
+          .from('appointments')
+          .select('id, appointment_date, start_time, status, confirmation_code, total_price, services(name), barbers(name)')
+          .eq('customer_id', customerRow.id)
+          .order('appointment_date', { ascending: false })
+
+        const mapped: Appointment[] = ((apts ?? []) as any[]).map((a) => ({
+          id: a.id,
+          service: a.services?.name ?? 'Service',
+          barber: a.barbers?.name ?? 'Aryan',
+          date: a.appointment_date,
+          time: fmt12h(a.start_time),
+          status: a.status,
+          price: a.total_price ?? 0,
+          confirmationCode: a.confirmation_code,
+        }))
+
+        setUpcomingAppointments(mapped.filter((a) => a.date >= today && a.status !== 'cancelled' && a.status !== 'completed'))
+        setPastAppointments(mapped.filter((a) => a.date < today || a.status === 'cancelled' || a.status === 'completed'))
+      }
+
+      setIsLoading(false)
     }
 
     init()
   }, [router])
 
   const handleSignOut = async () => {
-    try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-      toast.success('Signed out successfully')
-      router.push('/')
-      router.refresh()
-    } catch {
-      toast.error('Failed to sign out. Please try again.')
-    }
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    toast.success('Signed out successfully')
+    router.push('/')
+    router.refresh()
   }
 
   const handleCancelAppointment = async (id: string) => {
+    const supabase = createClient()
+    const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id)
+    if (error) { toast.error('Failed to cancel. Please try again.'); return }
+
     const target = upcomingAppointments.find((a) => a.id === id)
     if (!target) return
-
-    // Optimistic: remove from upcoming, add as cancelled to past
     setUpcomingAppointments((prev) => prev.filter((a) => a.id !== id))
-    setPastAppointments((prev) => [
-      { ...target, status: 'cancelled' as const },
-      ...prev,
-    ])
+    setPastAppointments((prev) => [{ ...target, status: 'cancelled' as const }, ...prev])
     toast.success('Appointment cancelled successfully.')
   }
 
   const handleBookAgain = (appointment: Appointment) => {
-    router.push(
-      `/booking?service=${encodeURIComponent(appointment.service)}&barber=${encodeURIComponent(appointment.barber)}`,
-    )
+    router.push(`/booking?service=${encodeURIComponent(appointment.service)}`)
   }
 
   if (isLoading) {
@@ -181,9 +135,7 @@ export default function AccountPage() {
     )
   }
 
-  const completedCount = pastAppointments.filter(
-    (a) => a.status === 'completed',
-  ).length
+  const completedCount = pastAppointments.filter((a) => a.status === 'completed').length
 
   return (
     <div className="min-h-screen bg-charcoal-950 pb-16">
@@ -191,7 +143,6 @@ export default function AccountPage() {
       <div className="border-b border-white/6 bg-charcoal-900/60 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
-            {/* User info */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-600/10 border border-gold-500/30 flex items-center justify-center shadow-[0_0_24px_rgba(201,168,76,0.12)] flex-shrink-0">
                 <span className="text-gold-400 font-semibold text-lg font-display">
@@ -211,7 +162,6 @@ export default function AccountPage() {
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex items-center gap-1.5">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/account/profile">
@@ -231,40 +181,20 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="grid grid-cols-3 gap-3 mt-6">
             {[
-              {
-                label: 'Upcoming',
-                value: upcomingAppointments.length,
-                icon: CalendarDays,
-              },
-              {
-                label: 'Completed',
-                value: completedCount,
-                icon: Scissors,
-              },
-              {
-                label: 'Profile',
-                value: 'Edit',
-                icon: User,
-                href: '/account/profile',
-              },
+              { label: 'Upcoming', value: upcomingAppointments.length, icon: CalendarDays },
+              { label: 'Completed', value: completedCount, icon: Scissors },
+              { label: 'Profile', value: 'Edit', icon: User, href: '/account/profile' },
             ].map(({ label, value, icon: Icon, href }) => (
               <div
                 key={label}
                 className="rounded-xl bg-charcoal-800 border border-white/6 p-3.5 text-center"
               >
-                <Icon
-                  className="w-4 h-4 text-gold-400/60 mx-auto mb-1.5"
-                  strokeWidth={1.5}
-                />
+                <Icon className="w-4 h-4 text-gold-400/60 mx-auto mb-1.5" strokeWidth={1.5} />
                 <div className="text-lg font-semibold text-white leading-tight">
                   {href ? (
-                    <Link
-                      href={href}
-                      className="text-gold-400 hover:text-gold-300 transition-colors text-sm"
-                    >
+                    <Link href={href} className="text-gold-400 hover:text-gold-300 transition-colors text-sm">
                       {value}
                     </Link>
                   ) : (
@@ -304,7 +234,6 @@ export default function AccountPage() {
             <TabsTrigger value="past">Past Appointments</TabsTrigger>
           </TabsList>
 
-          {/* Upcoming */}
           <TabsContent value="upcoming">
             {upcomingAppointments.length > 0 ? (
               <div className="space-y-3">
@@ -318,11 +247,24 @@ export default function AccountPage() {
                 ))}
               </div>
             ) : (
-              <UpcomingEmptyState />
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-gold-500/8 border border-gold-500/15 flex items-center justify-center mb-5">
+                  <CalendarDays className="w-8 h-8 text-gold-400/50" strokeWidth={1.25} />
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">No upcoming appointments</h3>
+                <p className="text-white/40 text-sm mb-6 max-w-xs leading-relaxed">
+                  You don&apos;t have any scheduled visits. Book your next session now.
+                </p>
+                <Button asChild>
+                  <Link href="/booking">
+                    <Scissors className="w-4 h-4" />
+                    Book an Appointment
+                  </Link>
+                </Button>
+              </div>
             )}
           </TabsContent>
 
-          {/* Past */}
           <TabsContent value="past">
             {pastAppointments.length > 0 ? (
               <div className="space-y-3">
@@ -337,42 +279,13 @@ export default function AccountPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Scissors
-                  className="w-10 h-10 mx-auto mb-3 text-white/20"
-                  strokeWidth={1}
-                />
+                <Scissors className="w-10 h-10 mx-auto mb-3 text-white/20" strokeWidth={1} />
                 <p className="text-sm text-white/40">No past appointments yet.</p>
               </div>
             )}
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  )
-}
-
-function UpcomingEmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gold-500/8 border border-gold-500/15 flex items-center justify-center mb-5">
-        <CalendarDays
-          className="w-8 h-8 text-gold-400/50"
-          strokeWidth={1.25}
-        />
-      </div>
-      <h3 className="text-white font-semibold text-lg mb-2">
-        No upcoming appointments
-      </h3>
-      <p className="text-white/40 text-sm mb-6 max-w-xs leading-relaxed">
-        You don&apos;t have any scheduled visits. Book your next premium session
-        now.
-      </p>
-      <Button asChild>
-        <Link href="/booking">
-          <Scissors className="w-4 h-4" />
-          Book an Appointment
-        </Link>
-      </Button>
     </div>
   )
 }

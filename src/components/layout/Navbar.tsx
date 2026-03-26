@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Scissors, Menu, X } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Scissors, Menu, X, User, LogOut, LayoutDashboard } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const navLinks = [
   { label: 'Home', href: '/' },
@@ -28,27 +30,63 @@ function useScrolled(threshold = 20) {
 export default function Navbar() {
   const scrolled = useScrolled()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
 
   // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false)
+    setUserMenuOpen(false)
   }, [pathname])
+
+  // Auth state
+  useEffect(() => {
+    const supabase = createClient()
+
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      if (user) {
+        const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
+        setIsAdmin(data?.role === 'admin')
+      }
+    }
+
+    loadUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (!session?.user) setIsAdmin(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Prevent body scroll when drawer is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setUser(null)
+    setIsAdmin(false)
+    setUserMenuOpen(false)
+    router.push('/')
+    router.refresh()
+  }
+
+  const userInitial = user?.user_metadata?.full_name?.[0]?.toUpperCase()
+    ?? user?.email?.[0]?.toUpperCase()
+    ?? '?'
 
   return (
     <>
@@ -102,13 +140,68 @@ export default function Navbar() {
             </div>
 
             {/* Desktop CTA */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               <Link
                 href="/booking"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold tracking-wide text-charcoal-950 bg-gold-500 hover:bg-gold-400 active:bg-gold-600 transition-all duration-200 shadow-[0_4px_24px_-4px_rgba(201,168,76,0.35)] hover:shadow-[0_8px_40px_-8px_rgba(201,168,76,0.5)] hover:-translate-y-0.5"
               >
                 Book Now
               </Link>
+
+              {/* Auth area */}
+              {user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen((v) => !v)}
+                    className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-600/10 border border-gold-500/30 flex items-center justify-center text-gold-400 font-semibold text-sm hover:border-gold-500/60 transition-all"
+                  >
+                    {userInitial}
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 top-12 w-48 bg-charcoal-900 border border-white/10 rounded-xl shadow-[var(--shadow-dark-lg)] overflow-hidden z-50">
+                      <div className="px-4 py-3 border-b border-white/8">
+                        <p className="text-white text-xs font-medium truncate">
+                          {user.user_metadata?.full_name ?? 'Account'}
+                        </p>
+                        <p className="text-white/40 text-xs truncate">{user.email}</p>
+                      </div>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gold-400 hover:bg-gold-500/10 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Admin Dashboard
+                        </Link>
+                      )}
+                      <Link
+                        href="/account"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <User className="w-4 h-4" />
+                        My Account
+                      </Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/8"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-white/60 hover:text-white transition-colors"
+                >
+                  Sign in
+                </Link>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -165,18 +258,57 @@ export default function Navbar() {
                   {label}
                 </Link>
               ))}
-              <div className="pt-3 pb-1">
+              <div className="pt-3 pb-1 flex flex-col gap-2">
                 <Link
                   href="/booking"
                   className="flex items-center justify-center w-full py-3 rounded-md text-sm font-semibold tracking-wide text-charcoal-950 bg-gold-500 hover:bg-gold-400 transition-colors duration-200"
                 >
                   Book Now
                 </Link>
+                {user ? (
+                  <>
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md text-sm font-medium text-gold-400 border border-gold-500/30 hover:bg-gold-500/10 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    <Link
+                      href="/account"
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md text-sm font-medium text-white/70 border border-white/10 hover:bg-white/5 transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      My Account
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-md text-sm font-medium text-red-400/70 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="flex items-center justify-center w-full py-2.5 rounded-md text-sm font-medium text-white/70 border border-white/10 hover:bg-white/5 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                )}
               </div>
             </div>
           </div>
         </div>
       </nav>
+
+      {/* Close user menu on outside click */}
+      {userMenuOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+      )}
     </>
   )
 }

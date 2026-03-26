@@ -25,9 +25,9 @@ const steps: Step[] = [
   {
     number: '03',
     icon: Sparkles,
-    title: 'Show Up & Look Sharp',
+    title: 'Show Up & Get Fresh',
     description:
-      'Walk in, relax, and let our master barbers handle the rest. Walk out looking and feeling your best.',
+      'Show up, sit down, and let Aryan handle the rest. Walk out with a clean cut you\'ll actually love.',
   },
 ]
 

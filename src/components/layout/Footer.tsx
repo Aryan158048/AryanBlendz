@@ -17,18 +17,18 @@ const hours = [
 const contact = [
   {
     icon: MapPin,
-    label: '123 Style Ave, New York, NY 10001',
-    href: 'https://maps.google.com',
+    label: 'Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854',
+    href: 'https://maps.google.com/maps?q=103+Davidson+Rd,+Piscataway,+NJ+08854',
   },
   {
     icon: Phone,
-    label: '(555) 123-4567',
-    href: 'tel:+15551234567',
+    label: '201-748-9849',
+    href: 'tel:+12017489849',
   },
   {
     icon: Mail,
-    label: 'info@aryanblendz.com',
-    href: 'mailto:info@aryanblendz.com',
+    label: 'hello@aryanblendz.com',
+    href: 'mailto:hello@aryanblendz.com',
   },
 ]
 
@@ -62,27 +62,18 @@ export default function Footer() {
             </Link>
 
             <p className="text-sm text-white/50 leading-relaxed max-w-[220px]">
-              Where precision meets style. Premium grooming for the modern gentleman.
+              Sharp cuts from your campus. Book with Aryan in seconds — no waiting, no walk-in stress.
             </p>
 
             <div className="flex items-center gap-3 pt-1">
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/aryanblendz/"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Follow us on Instagram"
+                aria-label="Follow @aryanblendz on Instagram"
                 className="flex items-center justify-center w-9 h-9 rounded-md bg-white/5 border border-white/8 text-white/50 hover:text-gold-400 hover:bg-gold-500/10 hover:border-gold-500/30 transition-all duration-200"
               >
                 <Share2 size={16} strokeWidth={2} />
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Follow us on X (Twitter)"
-                className="flex items-center justify-center w-9 h-9 rounded-md bg-white/5 border border-white/8 text-white/50 hover:text-gold-400 hover:bg-gold-500/10 hover:border-gold-500/30 transition-all duration-200"
-              >
-                <Globe size={16} strokeWidth={2} />
               </a>
             </div>
           </div>
@@ -129,7 +120,7 @@ export default function Footer() {
             </ul>
             <div className="flex items-center gap-2 pt-1">
               <Clock size={13} className="text-gold-500/70 flex-shrink-0" strokeWidth={2} />
-              <span className="text-xs text-white/30">Walk-ins welcome</span>
+              <span className="text-xs text-white/30">Appointment only</span>
             </div>
           </div>
 

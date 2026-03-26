@@ -38,6 +38,7 @@ interface CustomerFormProps {
   }
   onChange: (values: Partial<CustomerFormProps['values']>) => void
   onValidChange: (isValid: boolean) => void
+  lockedUser?: { name: string; email: string }
 }
 
 interface FieldWrapperProps {
@@ -90,7 +91,7 @@ const inputClass = (hasError: boolean, isValid: boolean) =>
         : 'border-white/10 focus:border-gold-500/50 hover:border-white/20',
   )
 
-export function CustomerForm({ values, onChange, onValidChange }: CustomerFormProps) {
+export function CustomerForm({ values, onChange, onValidChange, lockedUser }: CustomerFormProps) {
   const {
     register,
     formState: { errors, touchedFields, isValid },
@@ -127,6 +128,11 @@ export function CustomerForm({ values, onChange, onValidChange }: CustomerFormPr
     onValidChange(isValid)
   }, [isValid, onValidChange])
 
+  // When locked fields are pre-filled, trigger validation immediately so the form is valid
+  useEffect(() => {
+    if (lockedUser) trigger()
+  }, [lockedUser, trigger])
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="text-center space-y-2">
@@ -134,47 +140,66 @@ export function CustomerForm({ values, onChange, onValidChange }: CustomerFormPr
           Your Details
         </h2>
         <p className="text-white/50 text-sm">
-          We&apos;ll send your booking confirmation to these details
+          {lockedUser
+            ? 'Just add your phone number and any notes'
+            : "We'll send your booking confirmation to these details"}
         </p>
       </div>
 
-      <div className="bg-charcoal-800 rounded-xl border border-white/8 p-6 space-y-5">
-        <FieldWrapper
-          label="Full Name"
-          icon={<User className="w-3.5 h-3.5" />}
-          error={touchedFields.customerName ? errors.customerName?.message : undefined}
-          isValid={touchedFields.customerName && !errors.customerName && !!watchedValues.customerName}
-          required
-        >
-          <Input
-            {...register('customerName')}
-            placeholder="John Smith"
-            className={inputClass(
-              !!(touchedFields.customerName && errors.customerName),
-              !!(touchedFields.customerName && !errors.customerName && !!watchedValues.customerName),
-            )}
-          />
-        </FieldWrapper>
+      {lockedUser && (
+        <div className="flex items-center gap-3 bg-gold-500/8 border border-gold-500/20 rounded-xl px-4 py-3">
+          <div className="w-8 h-8 rounded-full bg-gold-500/15 border border-gold-500/25 flex items-center justify-center text-sm font-bold text-gold-400 font-display flex-shrink-0">
+            {lockedUser.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-white text-sm font-medium truncate">{lockedUser.name}</p>
+            <p className="text-white/40 text-xs truncate">{lockedUser.email}</p>
+          </div>
+          <span className="text-xs text-gold-400/70 ml-auto flex-shrink-0">Signed in</span>
+        </div>
+      )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="bg-charcoal-800 rounded-xl border border-white/8 p-6 space-y-5">
+        {!lockedUser && (
           <FieldWrapper
-            label="Email Address"
-            icon={<Mail className="w-3.5 h-3.5" />}
-            error={touchedFields.customerEmail ? errors.customerEmail?.message : undefined}
-            isValid={touchedFields.customerEmail && !errors.customerEmail && !!watchedValues.customerEmail}
+            label="Full Name"
+            icon={<User className="w-3.5 h-3.5" />}
+            error={touchedFields.customerName ? errors.customerName?.message : undefined}
+            isValid={touchedFields.customerName && !errors.customerName && !!watchedValues.customerName}
             required
-            hint="For booking confirmation"
           >
             <Input
-              {...register('customerEmail')}
-              type="email"
-              placeholder="john@example.com"
+              {...register('customerName')}
+              placeholder="John Smith"
               className={inputClass(
-                !!(touchedFields.customerEmail && errors.customerEmail),
-                !!(touchedFields.customerEmail && !errors.customerEmail && !!watchedValues.customerEmail),
+                !!(touchedFields.customerName && errors.customerName),
+                !!(touchedFields.customerName && !errors.customerName && !!watchedValues.customerName),
               )}
             />
           </FieldWrapper>
+        )}
+
+        <div className={lockedUser ? 'space-y-5' : 'grid grid-cols-1 sm:grid-cols-2 gap-5'}>
+          {!lockedUser && (
+            <FieldWrapper
+              label="Email Address"
+              icon={<Mail className="w-3.5 h-3.5" />}
+              error={touchedFields.customerEmail ? errors.customerEmail?.message : undefined}
+              isValid={touchedFields.customerEmail && !errors.customerEmail && !!watchedValues.customerEmail}
+              required
+              hint="For booking confirmation"
+            >
+              <Input
+                {...register('customerEmail')}
+                type="email"
+                placeholder="john@example.com"
+                className={inputClass(
+                  !!(touchedFields.customerEmail && errors.customerEmail),
+                  !!(touchedFields.customerEmail && !errors.customerEmail && !!watchedValues.customerEmail),
+                )}
+              />
+            </FieldWrapper>
+          )}
 
           <FieldWrapper
             label="Phone Number"

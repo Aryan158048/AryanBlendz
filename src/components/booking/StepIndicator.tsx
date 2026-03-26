@@ -5,10 +5,9 @@ import { cn } from '@/lib/utils'
 
 const STEPS = [
   { number: 1, label: 'Service' },
-  { number: 2, label: 'Barber' },
-  { number: 3, label: 'Date & Time' },
-  { number: 4, label: 'Your Details' },
-  { number: 5, label: 'Confirm' },
+  { number: 2, label: 'Date & Time' },
+  { number: 3, label: 'Your Details' },
+  { number: 4, label: 'Confirm' },
 ]
 
 interface StepIndicatorProps {

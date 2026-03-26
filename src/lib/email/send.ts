@@ -89,7 +89,7 @@ export async function sendCancellationEmail(data: {
           <tr><td style="color:#888;padding:8px 0">Code</td>   <td style="color:#C9A84C;font-family:monospace">${data.confirmationCode}</td></tr>
         </table>
         <p>We hope to see you again soon. <a href="${APP_URL}/booking" style="color:#C9A84C">Book again →</a></p>
-        <p style="color:#444;font-size:12px;margin-top:32px">Aryan Blendz · 123 Style Ave, New York, NY 10001</p>
+        <p style="color:#444;font-size:12px;margin-top:32px">Aryan Blendz · Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854</p>
       </div>
     `,
   })
@@ -155,8 +155,8 @@ function buildConfirmationHtml(d: BookingEmailData & {
         <!-- Location -->
         <tr><td style="padding:20px 40px;border-bottom:1px solid #2a2a2a;background:rgba(255,255,255,.02)">
           <p style="margin:0 0 4px;color:#888;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600">📍 Location</p>
-          <p style="margin:0;color:#fff;font-size:13px">123 Style Ave, New York, NY 10001</p>
-          <p style="margin:2px 0 0;color:#888;font-size:12px">(555) 012-3456</p>
+          <p style="margin:0;color:#fff;font-size:13px">Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854</p>
+          <p style="margin:2px 0 0;color:#888;font-size:12px">201-748-9849</p>
         </td></tr>
 
         <!-- Free cancellation notice -->
@@ -167,12 +167,12 @@ function buildConfirmationHtml(d: BookingEmailData & {
         <!-- CTA -->
         <tr><td style="padding:28px 40px;text-align:center">
           <a href="${d.manageUrl}" style="display:inline-block;background:linear-gradient(135deg,#C9A84C,#B8972E);color:#0a0a0a;font-weight:700;font-size:14px;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:.04em">Manage My Booking →</a>
-          <p style="margin:16px 0 0;color:#888;font-size:12px">Questions? Call <a href="tel:+15550123456" style="color:#C9A84C;text-decoration:none">(555) 012-3456</a></p>
+          <p style="margin:16px 0 0;color:#888;font-size:12px">Questions? Call <a href="tel:+12017489849" style="color:#C9A84C;text-decoration:none">201-748-9849</a></p>
         </td></tr>
 
         <!-- Footer -->
         <tr><td style="border-top:1px solid #2a2a2a;padding:20px 40px;text-align:center">
-          <p style="margin:0;color:#444;font-size:11px">© ${new Date().getFullYear()} Aryan Blendz · 123 Style Ave, New York, NY 10001</p>
+          <p style="margin:0;color:#444;font-size:11px">© ${new Date().getFullYear()} Aryan Blendz · Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854</p>
         </td></tr>
 
       </table>

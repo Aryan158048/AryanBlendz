@@ -66,7 +66,7 @@ export default function ContactPage() {
       icon: Phone,
       label: 'Phone',
       value: CONTACT_PHONE,
-      href: `tel:+15550123456`,
+      href: `tel:+12017489849`,
     },
     {
       icon: Mail,
@@ -78,7 +78,7 @@ export default function ContactPage() {
       icon: Share2,
       label: 'Instagram',
       value: '@aryanblendz',
-      href: 'https://instagram.com/aryanblendz',
+      href: 'https://www.instagram.com/aryanblendz/',
     },
   ]
 
@@ -284,9 +284,9 @@ export default function ContactPage() {
                 <div className="w-10 h-10 rounded-full bg-gold-500/20 flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-gold-400" />
                 </div>
-                <p className="text-white/40 text-sm font-medium">Find Us</p>
+                <p className="text-white/40 text-sm font-medium">Find Me</p>
                 <p className="text-white/25 text-xs text-center px-6">
-                  123 Main Street, New York, NY 10001
+                  Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854
                 </p>
                 <a
                   href={`https://maps.google.com/?q=${encodeURIComponent(SHOP_ADDRESS)}`}

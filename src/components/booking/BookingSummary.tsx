@@ -5,12 +5,11 @@ import { cn, formatTime, getDurationLabel } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SERVICES } from './ServiceSelector'
-import { BARBERS } from './BarberSelector'
 import { format, parseISO } from 'date-fns'
 
 interface BookingState {
   serviceId: string
-  barberId: string
+  barberId?: string
   date: string
   time: string
   customerName: string
@@ -48,8 +47,7 @@ function SummaryRow({ icon, label, value, valueClassName }: SummaryRowProps) {
 
 export function BookingSummary({ booking, onConfirm, isSubmitting }: BookingSummaryProps) {
   const service = SERVICES.find((s) => s.id === booking.serviceId)
-  const barber = BARBERS.find((b) => b.id === booking.barberId)
-  const barberName = booking.barberId === 'any' ? 'Any Available' : barber?.name ?? 'Unknown'
+  const barberName = 'Aryan'
 
   const formattedDate = booking.date
     ? format(parseISO(booking.date), 'EEEE, MMMM d, yyyy')

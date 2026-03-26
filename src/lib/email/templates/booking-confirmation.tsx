@@ -117,10 +117,10 @@ export function BookingConfirmationEmail({
                             📍 Location
                           </p>
                           <p style={{ margin: '4px 0 0', color: '#ffffff', fontSize: 13 }}>
-                            123 Style Ave, New York, NY 10001
+                            Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854
                           </p>
                           <p style={{ margin: '2px 0 0', color: muted, fontSize: 12 }}>
-                            (555) 012-3456
+                            201-748-9849
                           </p>
                         </td>
                         <td style={{ textAlign: 'right', verticalAlign: 'top' }}>
@@ -169,8 +169,8 @@ export function BookingConfirmationEmail({
                     </a>
                     <p style={{ margin: '16px 0 0', color: muted, fontSize: 12 }}>
                       Need help? Reply to this email or call{' '}
-                      <a href="tel:+15550123456" style={{ color: gold, textDecoration: 'none' }}>
-                        (555) 012-3456
+                      <a href="tel:+12017489849" style={{ color: gold, textDecoration: 'none' }}>
+                        201-748-9849
                       </a>
                     </p>
                   </td>
@@ -180,7 +180,7 @@ export function BookingConfirmationEmail({
                 <tr>
                   <td style={{ borderTop: `1px solid ${border}`, padding: '20px 40px', textAlign: 'center' }}>
                     <p style={{ margin: 0, color: '#444', fontSize: 11 }}>
-                      © {new Date().getFullYear()} Aryan Blendz · 123 Style Ave, New York, NY 10001
+                      © {new Date().getFullYear()} Aryan Blendz · Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854
                     </p>
                     <p style={{ margin: '4px 0 0', color: '#333', fontSize: 11 }}>
                       You received this because you booked an appointment with us.
