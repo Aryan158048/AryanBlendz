@@ -1,5 +1,88 @@
 'use server'
 
+// ── Public data actions (no auth required) ────────────────────────────────────
+
+export async function getActiveServices() {
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('services')
+    .select('id, name, description, price, duration, category')
+    .eq('is_active', true)
+    .order('display_order')
+  return (data ?? []) as any[]
+}
+
+export async function getBarberSchedule() {
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const { data: barberRow } = await admin
+    .from('barbers').select('id').eq('name', 'Aryan').single()
+  if (!barberRow) return { closedDays: [0,1,2,3,4,5,6] as number[], blockedDates: [] as string[] }
+
+  const today = new Date().toISOString().split('T')[0]
+  const future = new Date(); future.setMonth(future.getMonth() + 4)
+  const futureDate = future.toISOString().split('T')[0]
+
+  const [availRes, blockedRes] = await Promise.all([
+    admin.from('availability').select('day_of_week, is_available').eq('barber_id', barberRow.id),
+    admin.from('blocked_dates').select('date').eq('barber_id', barberRow.id).gte('date', today).lte('date', futureDate),
+  ])
+
+  const closedDays = ((availRes.data ?? []) as any[])
+    .filter((a) => !a.is_available)
+    .map((a) => a.day_of_week as number)
+
+  return {
+    closedDays,
+    blockedDates: ((blockedRes.data ?? []) as any[]).map((b) => b.date as string),
+  }
+}
+
+export async function getAvailableSlots(date: string) {
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const { data: barberRow } = await admin
+    .from('barbers').select('id').eq('name', 'Aryan').single()
+  if (!barberRow) return { open: false, slots: [] as string[], booked: [] as string[] }
+
+  const dayOfWeek = new Date(date + 'T12:00:00').getDay()
+  const { data: avail } = await admin
+    .from('availability')
+    .select('is_available, start_time, end_time')
+    .eq('barber_id', barberRow.id)
+    .eq('day_of_week', dayOfWeek)
+    .single()
+
+  if (!avail?.is_available) return { open: false, slots: [] as string[], booked: [] as string[] }
+
+  const { data: blocked } = await admin
+    .from('blocked_dates').select('id').eq('barber_id', barberRow.id).eq('date', date).maybeSingle()
+  if (blocked) return { open: false, slots: [] as string[], booked: [] as string[] }
+
+  // Generate 30-min slots between open/close
+  const [sh, sm] = avail.start_time.split(':').map(Number)
+  const [eh, em] = avail.end_time.split(':').map(Number)
+  const slots: string[] = []
+  for (let m = sh * 60 + sm; m < eh * 60 + em; m += 30) {
+    slots.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)
+  }
+
+  const { data: apts } = await admin
+    .from('appointments')
+    .select('start_time')
+    .eq('barber_id', barberRow.id)
+    .eq('appointment_date', date)
+    .in('status', ['pending', 'confirmed'])
+
+  return {
+    open: true,
+    slots,
+    booked: ((apts ?? []) as any[]).map((a) => (a.start_time as string).slice(0, 5)),
+  }
+}
+
+
 // Server Action: createBooking
 // 1. Validates input
 // 2. Resolves barber + service UUIDs from the DB (static IDs → real UUIDs)

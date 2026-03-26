@@ -1,51 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  isSameMonth,
-  isToday,
-  isPast,
-  isSameDay,
-  addMonths,
-  subMonths,
-  getDay,
-  startOfWeek,
-  endOfWeek,
+  format, startOfMonth, endOfMonth, eachDayOfInterval,
+  isSameMonth, isToday, isSameDay, addMonths, subMonths, getDay,
+  startOfWeek, endOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const TIME_SLOTS = [
-  '09:00', '09:30',
-  '10:00', '10:30',
-  '11:00', '11:30',
-  '12:00', '12:30',
-  '13:00', '13:30',
-  '14:00', '14:30',
-  '15:00', '15:30',
-  '16:00', '16:30',
-  '17:00', '17:30',
-  '18:00', '18:30',
-]
-
-// Demo: hardcode some booked slots for today and tomorrow
-function getBookedSlots(date: Date): string[] {
-  const day = date.getDate()
-  if (day % 3 === 0) return ['10:00', '11:30', '14:00', '16:30']
-  if (day % 3 === 1) return ['09:30', '12:00', '15:00', '17:30']
-  return ['10:30', '13:00', '14:30', '16:00']
-}
+import { getBarberSchedule, getAvailableSlots } from '@/app/actions/booking'
 
 function formatTimeLabel(time: string): string {
-  const [hourStr, minuteStr] = time.split(':')
-  const hour = parseInt(hourStr, 10)
-  const period = hour >= 12 ? 'PM' : 'AM'
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12
-  return `${displayHour}:${minuteStr} ${period}`
+  const [h, m] = time.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const display = h % 12 === 0 ? 12 : h % 12
+  return `${display}:${String(m).padStart(2, '0')} ${period}`
 }
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -58,34 +27,59 @@ interface DateTimeSelectorProps {
 }
 
 export function DateTimeSelector({
-  selectedDate,
-  selectedTime,
-  onDateSelect,
-  onTimeSelect,
+  selectedDate, selectedTime, onDateSelect, onTimeSelect,
 }: DateTimeSelectorProps) {
   const [viewMonth, setViewMonth] = useState(() => new Date())
+  const [closedDays, setClosedDays] = useState<number[]>([])
+  const [blockedDates, setBlockedDates] = useState<string[]>([])
+  const [scheduleLoading, setScheduleLoading] = useState(true)
+  const [slots, setSlots] = useState<string[]>([])
+  const [bookedSlots, setBookedSlots] = useState<string[]>([])
+  const [slotsLoading, setSlotsLoading] = useState(false)
+
+  // Load schedule (closed days + blocked dates) once on mount
+  useEffect(() => {
+    getBarberSchedule().then(({ closedDays, blockedDates }) => {
+      setClosedDays(closedDays)
+      setBlockedDates(blockedDates)
+      setScheduleLoading(false)
+    }).catch(() => setScheduleLoading(false))
+  }, [])
+
+  // Load time slots when a date is selected
+  useEffect(() => {
+    if (!selectedDate) { setSlots([]); setBookedSlots([]); return }
+    setSlotsLoading(true)
+    getAvailableSlots(selectedDate).then((res) => {
+      if (!res || !res.open) {
+        setSlots([])
+        setBookedSlots([])
+      } else {
+        setSlots(res.slots)
+        setBookedSlots(res.booked)
+      }
+      setSlotsLoading(false)
+    }).catch(() => { setSlotsLoading(false); setSlots([]); setBookedSlots([]) })
+  }, [selectedDate])
 
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T12:00:00') : null
-  const bookedSlots = selectedDateObj ? getBookedSlots(selectedDateObj) : []
 
   const monthStart = startOfMonth(viewMonth)
-  const monthEnd = endOfMonth(viewMonth)
-  const calStart = startOfWeek(monthStart)
-  const calEnd = endOfWeek(monthEnd)
-  const calDays = eachDayOfInterval({ start: calStart, end: calEnd })
+  const monthEnd   = endOfMonth(viewMonth)
+  const calDays    = eachDayOfInterval({ start: startOfWeek(monthStart), end: endOfWeek(monthEnd) })
 
   function isDisabled(date: Date): boolean {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    return d < today || getDay(date) === 0
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const d = new Date(date); d.setHours(0, 0, 0, 0)
+    if (d < today) return true
+    if (closedDays.includes(getDay(date))) return true
+    if (blockedDates.includes(format(date, 'yyyy-MM-dd'))) return true
+    return false
   }
 
   function handleDateClick(date: Date) {
     if (isDisabled(date)) return
-    const formatted = format(date, 'yyyy-MM-dd')
-    onDateSelect(formatted)
+    onDateSelect(format(date, 'yyyy-MM-dd'))
     onTimeSelect('')
   }
 
@@ -103,7 +97,6 @@ export function DateTimeSelector({
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Calendar */}
         <div className="flex-1 bg-charcoal-800 rounded-xl border border-white/8 p-5">
-          {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => setViewMonth(subMonths(viewMonth, 1))}
@@ -122,47 +115,44 @@ export function DateTimeSelector({
             </button>
           </div>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 mb-2">
             {DAYS_OF_WEEK.map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-medium text-white/30 py-1"
-              >
-                {day}
-              </div>
+              <div key={day} className="text-center text-xs font-medium text-white/30 py-1">{day}</div>
             ))}
           </div>
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {calDays.map((date, i) => {
-              const disabled = isDisabled(date)
-              const isCurrentMonth = isSameMonth(date, viewMonth)
-              const isSelectedDay = selectedDateObj && isSameDay(date, selectedDateObj)
-              const isTodayDate = isToday(date)
-              const isSunday = getDay(date) === 0
+          {scheduleLoading ? (
+            <div className="flex items-center justify-center h-36">
+              <Loader2 className="w-5 h-5 text-gold-400 animate-spin" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-0.5">
+              {calDays.map((date, i) => {
+                const disabled       = isDisabled(date)
+                const isCurrentMonth = isSameMonth(date, viewMonth)
+                const isSelectedDay  = selectedDateObj && isSameDay(date, selectedDateObj)
+                const isTodayDate    = isToday(date)
 
-              return (
-                <button
-                  key={i}
-                  onClick={() => handleDateClick(date)}
-                  disabled={disabled || !isCurrentMonth}
-                  className={cn(
-                    'aspect-square rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-gold-500',
-                    !isCurrentMonth && 'opacity-0 pointer-events-none',
-                    isCurrentMonth && !disabled && !isSelectedDay && 'text-white hover:bg-gold-500/15 hover:text-gold-300',
-                    isSelectedDay && 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.4)]',
-                    isTodayDate && !isSelectedDay && 'ring-1 ring-gold-500/40 text-gold-400',
-                    disabled && isCurrentMonth && !isSunday && 'text-white/20 cursor-not-allowed',
-                    isSunday && isCurrentMonth && 'text-white/15 cursor-not-allowed',
-                  )}
-                >
-                  {format(date, 'd')}
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleDateClick(date)}
+                    disabled={disabled || !isCurrentMonth}
+                    className={cn(
+                      'aspect-square rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-gold-500',
+                      !isCurrentMonth && 'opacity-0 pointer-events-none',
+                      isCurrentMonth && !disabled && !isSelectedDay && 'text-white hover:bg-gold-500/15 hover:text-gold-300',
+                      isSelectedDay && 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.4)]',
+                      isTodayDate && !isSelectedDay && 'ring-1 ring-gold-500/40 text-gold-400',
+                      disabled && isCurrentMonth && 'text-white/20 cursor-not-allowed',
+                    )}
+                  >
+                    {format(date, 'd')}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <div className="mt-4 flex items-center gap-4 text-xs text-white/30">
             <div className="flex items-center gap-1.5">
@@ -200,10 +190,19 @@ export function DateTimeSelector({
                 Pick a date on the calendar to see available time slots
               </p>
             </div>
+          ) : slotsLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-5 h-5 text-gold-400 animate-spin" />
+            </div>
+          ) : slots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-center space-y-2">
+              <p className="text-white/40 text-sm">No available slots on this day.</p>
+              <p className="text-white/25 text-xs">Try a different date.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {TIME_SLOTS.map((time) => {
-                const isBooked = bookedSlots.includes(time)
+              {slots.map((time) => {
+                const isBooked   = bookedSlots.includes(time)
                 const isSelected = selectedTime === time
 
                 return (
@@ -218,11 +217,10 @@ export function DateTimeSelector({
                       isBooked && 'bg-charcoal-900/50 text-white/15 cursor-not-allowed border border-white/4',
                     )}
                   >
-                    {isBooked ? (
-                      <span className="line-through">{formatTimeLabel(time)}</span>
-                    ) : (
-                      formatTimeLabel(time)
-                    )}
+                    {isBooked
+                      ? <span className="line-through">{formatTimeLabel(time)}</span>
+                      : formatTimeLabel(time)
+                    }
                     {isBooked && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-charcoal-700 border border-charcoal-600 flex items-center justify-center">
                         <span className="text-white/30" style={{ fontSize: '7px' }}>✕</span>
@@ -234,10 +232,10 @@ export function DateTimeSelector({
             </div>
           )}
 
-          {selectedDate && (
+          {selectedDate && slots.length > 0 && (
             <p className="mt-4 text-xs text-white/25 flex items-center gap-1">
-              <span className="line-through text-white/20">10:00 AM</span>
-              <span>= Booked · Sundays closed</span>
+              <span className="line-through text-white/20">9:00 AM</span>
+              <span>= Booked · Closed days are grayed out</span>
             </p>
           )}
         </div>

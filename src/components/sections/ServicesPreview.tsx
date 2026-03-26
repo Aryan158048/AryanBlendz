@@ -1,62 +1,40 @@
 import Link from 'next/link'
 import { Clock, ArrowRight, Scissors, Zap } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-interface Service {
+interface DBService {
+  id: string
   name: string
-  duration: string
-  price: number
   description: string
-  badge?: string
+  price: number
+  duration: number
+  category: string
 }
 
-const services: Service[] = [
-  {
-    name: 'Haircut',
-    duration: '45 min',
-    price: 35,
-    description:
-      'A precision cut tailored to your head shape and personal style. Includes wash and style finish.',
-  },
-  {
-    name: 'Beard Trim',
-    duration: '30 min',
-    price: 25,
-    description:
-      'Expert shaping and detailing to keep your beard looking sharp, defined, and well-groomed.',
-  },
-  {
-    name: 'Lineup / Edge Up',
-    duration: '20 min',
-    price: 20,
-    description:
-      'Crisp edge-up on your hairline, temples, and neckline. Clean lines, instant refresh.',
-  },
-  {
-    name: 'Haircut + Beard',
-    duration: '70 min',
-    price: 55,
-    description:
-      'The complete look — precision haircut combined with expert beard sculpting and detailing.',
-    badge: 'Most Popular',
-  },
-  {
-    name: "Kids Cut",
-    duration: '30 min',
-    price: 25,
-    description:
-      "Gentle, expert cuts for boys under 12. Clean results they'll be proud to show off.",
-  },
-  {
-    name: 'Premium Package',
-    duration: '90 min',
-    price: 75,
-    description:
-      'The full experience — haircut, hot towel shave, beard trim, and a scalp massage. Pure luxury.',
-    badge: 'Best Value',
-  },
-]
+// Map well-known service names/categories to badges
+function getBadge(name: string): string | undefined {
+  const n = name.toLowerCase()
+  if (n.includes('combo') || n.includes('beard') && n.includes('haircut')) return 'Most Popular'
+  if (n.includes('premium')) return 'Best Value'
+  return undefined
+}
 
-export default function ServicesPreview() {
+function formatDuration(mins: number): string {
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m ? `${h}h ${m}min` : `${h}hr`
+}
+
+export default async function ServicesPreview() {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('services')
+    .select('id, name, description, price, duration, category')
+    .eq('is_active', true)
+    .order('display_order')
+  const services: DBService[] = data ?? []
+
   return (
     <section className="py-28 bg-charcoal-950 relative overflow-hidden">
       {/* Top edge */}
@@ -87,19 +65,23 @@ export default function ServicesPreview() {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {services.map((service) => (
-            <ServiceCard key={service.name} service={service} />
-          ))}
-        </div>
+        {services.length === 0 ? (
+          <p className="text-center text-white/30 text-sm py-12">No services listed yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {services.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+        )}
 
         {/* CTA */}
         <div className="mt-14 text-center">
           <Link
-            href="/services"
+            href="/booking"
             className="inline-flex items-center gap-2.5 px-6 py-3 rounded-lg border border-white/10 text-sm font-semibold text-white/70 hover:text-white hover:border-white/20 hover:bg-white/4 transition-all duration-200 group"
           >
-            View Full Services Menu
+            Book an Appointment
             <ArrowRight
               size={15}
               strokeWidth={2.5}
@@ -112,16 +94,17 @@ export default function ServicesPreview() {
   )
 }
 
-function ServiceCard({ service }: { service: Service }) {
+function ServiceCard({ service }: { service: DBService }) {
+  const badge = getBadge(service.name)
   return (
-    <Link href="/booking" className="group block relative">
+    <Link href={`/booking?service=${service.id}`} className="group block relative">
       <div className="relative h-full flex flex-col gap-4 p-6 rounded-2xl bg-charcoal-800/70 border border-white/5 hover:border-gold-500/30 hover:bg-charcoal-800 transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(201,168,76,0.12),0_24px_48px_-12px_rgba(0,0,0,0.6),0_8px_32px_-8px_rgba(201,168,76,0.08)] hover:-translate-y-1">
 
-        {service.badge && (
+        {badge && (
           <div className="absolute top-4 right-4">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-gold-500/12 text-gold-400 border border-gold-500/20">
               <Zap size={8} className="fill-gold-400" />
-              {service.badge}
+              {badge}
             </span>
           </div>
         )}
@@ -129,11 +112,7 @@ function ServiceCard({ service }: { service: Service }) {
         {/* Icon + price */}
         <div className="flex items-start justify-between">
           <div className="w-11 h-11 rounded-xl bg-gold-500/8 border border-gold-500/15 flex items-center justify-center group-hover:bg-gold-500/15 group-hover:border-gold-500/30 transition-all duration-300">
-            <Scissors
-              size={18}
-              className="text-gold-500 rotate-[-45deg]"
-              strokeWidth={2}
-            />
+            <Scissors size={18} className="text-gold-500 rotate-[-45deg]" strokeWidth={2} />
           </div>
           <div className="text-right">
             <span className="text-2xl font-bold text-white group-hover:text-gold-300 transition-colors duration-200">
@@ -149,7 +128,7 @@ function ServiceCard({ service }: { service: Service }) {
           </h3>
           <div className="flex items-center gap-1.5 text-white/30">
             <Clock size={11} strokeWidth={2} />
-            <span className="text-xs">{service.duration}</span>
+            <span className="text-xs">{formatDuration(service.duration)}</span>
           </div>
         </div>
 
@@ -162,11 +141,7 @@ function ServiceCard({ service }: { service: Service }) {
         <div className="flex items-center justify-between pt-4 border-t border-white/5 mt-auto">
           <span className="text-xs font-semibold text-gold-500/60 group-hover:text-gold-400 transition-colors duration-200 flex items-center gap-1.5">
             Book This Service
-            <ArrowRight
-              size={11}
-              strokeWidth={2.5}
-              className="group-hover:translate-x-0.5 transition-transform duration-200"
-            />
+            <ArrowRight size={11} strokeWidth={2.5} className="group-hover:translate-x-0.5 transition-transform duration-200" />
           </span>
           <div className="w-6 h-6 rounded-full bg-gold-500/0 group-hover:bg-gold-500/10 border border-gold-500/0 group-hover:border-gold-500/20 flex items-center justify-center transition-all duration-300">
             <ArrowRight size={10} className="text-gold-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />

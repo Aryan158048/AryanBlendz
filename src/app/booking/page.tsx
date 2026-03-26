@@ -11,11 +11,14 @@ import { CustomerForm } from '@/components/booking/CustomerForm'
 import { BookingSummary } from '@/components/booking/BookingSummary'
 import { toast } from 'sonner'
 import { createBooking } from '@/app/actions/booking'
-import { SERVICES } from '@/components/booking/ServiceSelector'
 import { createClient } from '@/lib/supabase/client'
 
 interface BookingData {
   serviceId: string
+  serviceName: string
+  servicePrice: number
+  serviceDuration: number
+  serviceDescription: string
   date: string
   time: string
   customerName: string
@@ -44,13 +47,17 @@ function BookingPageInner() {
   const [isCustomerFormValid, setIsCustomerFormValid] = useState(false)
   const [lockedUser, setLockedUser] = useState<{ name: string; email: string } | undefined>()
   const [booking, setBooking] = useState<BookingData>({
-    serviceId: preselectedService,
-    date: '',
-    time: '',
-    customerName: '',
-    customerEmail: '',
-    customerPhone: '',
-    notes: '',
+    serviceId:          preselectedService,
+    serviceName:        '',
+    servicePrice:       0,
+    serviceDuration:    0,
+    serviceDescription: '',
+    date:               '',
+    time:               '',
+    customerName:       '',
+    customerEmail:      '',
+    customerPhone:      '',
+    notes:              '',
   })
 
   useEffect(() => {
@@ -95,8 +102,6 @@ function BookingPageInner() {
   async function handleConfirm() {
     setIsSubmitting(true)
     try {
-      const service = SERVICES.find((s) => s.id === booking.serviceId)
-
       const result = await createBooking({
         serviceId:       booking.serviceId,
         barberId:        'aryan',
@@ -106,9 +111,9 @@ function BookingPageInner() {
         customerEmail:   booking.customerEmail,
         customerPhone:   booking.customerPhone,
         notes:           booking.notes,
-        serviceName:     service?.name     ?? booking.serviceId,
-        servicePrice:    service?.price    ?? 0,
-        serviceDuration: service?.duration ?? 30,
+        serviceName:     booking.serviceName,
+        servicePrice:    booking.servicePrice,
+        serviceDuration: booking.serviceDuration,
         barberName:      'Aryan',
       })
 
@@ -159,7 +164,13 @@ function BookingPageInner() {
           {step === 1 && (
             <ServiceSelector
               selectedServiceId={booking.serviceId}
-              onSelect={(serviceId) => updateBooking({ serviceId })}
+              onSelect={(serviceId, svc) => updateBooking({
+                serviceId,
+                serviceName:        svc.name,
+                servicePrice:       svc.price,
+                serviceDuration:    svc.duration,
+                serviceDescription: svc.description,
+              })}
             />
           )}
           {step === 2 && (
@@ -185,7 +196,7 @@ function BookingPageInner() {
           )}
           {step === 4 && (
             <BookingSummary
-              booking={{ ...booking, barberId: 'aryan' }}
+              booking={booking}
               onConfirm={handleConfirm}
               isSubmitting={isSubmitting}
             />

@@ -4,11 +4,14 @@ import { Calendar, Clock, Scissors, User, Mail, Phone, MessageSquare, ShieldChec
 import { cn, formatTime, getDurationLabel } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { SERVICES } from './ServiceSelector'
 import { format, parseISO } from 'date-fns'
 
 interface BookingState {
   serviceId: string
+  serviceName: string
+  servicePrice: number
+  serviceDuration: number
+  serviceDescription: string
   barberId?: string
   date: string
   time: string
@@ -46,7 +49,6 @@ function SummaryRow({ icon, label, value, valueClassName }: SummaryRowProps) {
 }
 
 export function BookingSummary({ booking, onConfirm, isSubmitting }: BookingSummaryProps) {
-  const service = SERVICES.find((s) => s.id === booking.serviceId)
   const barberName = 'Aryan'
 
   const formattedDate = booking.date
@@ -71,12 +73,12 @@ export function BookingSummary({ booking, onConfirm, isSubmitting }: BookingSumm
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/40 text-xs uppercase tracking-widest font-medium mb-1">Service</p>
-              <h3 className="text-white font-bold text-xl sm:text-2xl font-display">{service?.name}</h3>
-              <p className="text-white/40 text-sm mt-0.5">{service?.description}</p>
+              <h3 className="text-white font-bold text-xl sm:text-2xl font-display">{booking.serviceName}</h3>
+              <p className="text-white/40 text-sm mt-0.5">{booking.serviceDescription}</p>
             </div>
             <div className="text-right">
               <p className="text-white/30 text-xs uppercase tracking-wide">Total</p>
-              <p className="text-3xl sm:text-4xl font-bold text-gold-400">${service?.price}</p>
+              <p className="text-3xl sm:text-4xl font-bold text-gold-400">${booking.servicePrice}</p>
             </div>
           </div>
         </div>
@@ -87,12 +89,12 @@ export function BookingSummary({ booking, onConfirm, isSubmitting }: BookingSumm
             <SummaryRow
               icon={<Scissors className="w-4 h-4" />}
               label="Service"
-              value={service?.name ?? ''}
+              value={booking.serviceName}
             />
             <SummaryRow
               icon={<Clock className="w-4 h-4" />}
               label="Duration"
-              value={getDurationLabel(service?.duration ?? 0)}
+              value={getDurationLabel(booking.serviceDuration)}
             />
           </div>
 
@@ -158,7 +160,7 @@ export function BookingSummary({ booking, onConfirm, isSubmitting }: BookingSumm
               <p className="text-white/30 text-xs mt-0.5">Pay in store at time of appointment</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-gold-400">${service?.price}</p>
+              <p className="text-3xl font-bold text-gold-400">${booking.servicePrice}</p>
             </div>
           </div>
         </div>
