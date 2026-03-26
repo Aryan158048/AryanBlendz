@@ -1,21 +1,25 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { CheckCircle2, ArrowRight, Scissors, Star, Award, Users } from 'lucide-react'
+import { getBarberProfile } from '@/app/actions/booking'
 
 const highlights = [
-  '8+ Years of Hands-On Experience',
   'Precision Fades & Clean Lineups',
   'Premium Grooming Products Only',
   'Same-Day Booking Available',
+  'One Barber, Full Focus on You',
 ]
 
-const achievements = [
-  { icon: Star, value: '4.9', label: 'Avg Rating' },
-  { icon: Users, value: '500+', label: 'Clients Served' },
-  { icon: Award, value: '8 Yrs', label: 'Experience' },
-]
+export default async function AboutSection() {
+  const profile = await getBarberProfile().catch(() => ({
+    rating: 4.9, totalCustomers: 0, yearsExperience: 8,
+  }))
 
-export default function AboutSection() {
+  const achievements = [
+    { icon: Star,  value: String(profile.rating),  label: 'Avg Rating' },
+    { icon: Users, value: profile.totalCustomers > 0 ? `${profile.totalCustomers}+` : '500+', label: 'Clients Served' },
+    { icon: Award, value: `${profile.yearsExperience} Yrs`, label: 'Experience' },
+  ]
   return (
     <section className="py-24 bg-[#0D0D0D] relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />

@@ -32,7 +32,7 @@ function ConfirmationContent() {
     if (navigator.share) {
       navigator.share({
         title: 'Aryan Blendz Appointment',
-        text: `I just booked a ${service?.name} at Aryan Blendz on ${formattedDate} at ${formattedTime}!`,
+        text: `I just booked a ${serviceName} at Aryan Blendz on ${formattedDate} at ${formattedTime}!`,
         url: window.location.href,
       }).catch(() => {})
     } else {
@@ -125,7 +125,7 @@ function ConfirmationContent() {
         .glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
       `}</style>
 
-      <div className="relative max-w-lg mx-auto px-4 py-12 space-y-8">
+      <div className="relative max-w-lg mx-auto px-4 pt-10 pb-12 pb-safe-6 space-y-8">
         {/* Success icon */}
         <div className="flex flex-col items-center text-center space-y-6">
           <div className="check-animate glow-pulse w-24 h-24 rounded-full bg-gold-500/15 border-2 border-gold-500 flex items-center justify-center">

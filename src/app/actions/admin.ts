@@ -31,21 +31,21 @@ export async function adminGetDashboardData() {
   const weekStart = d.toISOString().split('T')[0]
 
   const { data: barberRow } = await admin
-    .from('barbers').select('id').eq('name', 'Aryan').single()
+    .from('barbers').select('id, rating').eq('name', 'Aryan').single()
   if (!barberRow) return null
   const bid = barberRow.id
 
   const [todayRes, recentRes, todayCount, custCount, weekRev] = await Promise.all([
     admin
       .from('appointments')
-      .select('id, start_time, status, customers(name), services(name)')
+      .select('id, time, status, customers(name), services(name)')
       .eq('barber_id', bid)
-      .eq('appointment_date', today)
+      .eq('date', today)
       .in('status', ['pending', 'confirmed', 'completed'])
-      .order('start_time'),
+      .order('time'),
     admin
       .from('appointments')
-      .select('id, appointment_date, start_time, status, confirmation_code, total_price, customers(name), services(name)')
+      .select('id, date, time, status, confirmation_code, total_price, customers(name), services(name)')
       .eq('barber_id', bid)
       .order('created_at', { ascending: false })
       .limit(6),
@@ -53,7 +53,7 @@ export async function adminGetDashboardData() {
       .from('appointments')
       .select('*', { count: 'exact', head: true })
       .eq('barber_id', bid)
-      .eq('appointment_date', today),
+      .eq('date', today),
     admin
       .from('customers')
       .select('*', { count: 'exact', head: true }),
@@ -62,15 +62,16 @@ export async function adminGetDashboardData() {
       .select('total_price')
       .eq('barber_id', bid)
       .eq('status', 'completed')
-      .gte('appointment_date', weekStart),
+      .gte('date', weekStart),
   ])
 
   return {
-    todayRows:   (todayRes.data   ?? []) as any[],
-    recentRows:  (recentRes.data  ?? []) as any[],
-    todayCount:  todayCount.count ?? 0,
-    custCount:   custCount.count  ?? 0,
+    todayRows:    (todayRes.data   ?? []) as any[],
+    recentRows:   (recentRes.data  ?? []) as any[],
+    todayCount:   todayCount.count ?? 0,
+    custCount:    custCount.count  ?? 0,
     weekRevTotal: ((weekRev.data ?? []) as any[]).reduce((s: number, a: any) => s + (a.total_price ?? 0), 0),
+    barberRating: (barberRow as any).rating ?? 4.9,
   }
 }
 
@@ -84,10 +85,10 @@ export async function adminGetAppointments() {
 
   const { data } = await admin
     .from('appointments')
-    .select('id, appointment_date, start_time, status, confirmation_code, total_price, customers(name, email), services(name)')
+    .select('id, date, time, status, confirmation_code, total_price, customers(name, email), services(name)')
     .eq('barber_id', barberRow.id)
-    .order('appointment_date', { ascending: false })
-    .order('start_time',        { ascending: false })
+    .order('date', { ascending: false })
+    .order('time', { ascending: false })
 
   return (data ?? []) as any[]
 }
@@ -110,9 +111,9 @@ export async function adminGetCustomerAppointments(customerId: string) {
 
   const { data } = await admin
     .from('appointments')
-    .select('id, appointment_date, status, total_price, services(name)')
+    .select('id, date, status, total_price, services(name)')
     .eq('customer_id', customerId)
-    .order('appointment_date', { ascending: false })
+    .order('date', { ascending: false })
     .limit(10)
 
   return (data ?? []) as any[]
@@ -204,6 +205,28 @@ export async function adminRemoveBlockedDate(id: string) {
   await requireAdmin()
   const admin = createAdminClient()
   const { error } = await admin.from('blocked_dates').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function adminGetBarberInfo() {
+  await requireAdmin()
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('barbers')
+    .select('id, name, bio, specialties, instagram, years_experience, rating, total_reviews')
+    .eq('name', 'Aryan')
+    .single()
+  return data as any
+}
+
+export async function adminUpdateBarberInfo(payload: {
+  name?: string; bio?: string; instagram?: string; years_experience?: number; rating?: number
+}) {
+  await requireAdmin()
+  const admin = createAdminClient()
+  const { data: barberRow } = await admin.from('barbers').select('id').eq('name', 'Aryan').single()
+  if (!barberRow) throw new Error('Barber not found')
+  const { error } = await admin.from('barbers').update(payload).eq('id', barberRow.id)
   if (error) throw new Error(error.message)
 }
 

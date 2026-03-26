@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,14 +16,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { BUSINESS_HOURS, CONTACT_EMAIL, CONTACT_PHONE, SHOP_ADDRESS } from '@/lib/constants'
+import { CONTACT_EMAIL, CONTACT_PHONE, SHOP_ADDRESS, DAYS_OF_WEEK } from '@/lib/constants'
+import { adminGetBarberInfo, adminUpdateBarberInfo } from '@/app/actions/admin'
+import { getPublicHours } from '@/app/actions/booking'
 
 const dayOrder = [1, 2, 3, 4, 5, 6, 0]
 
+function fmt12h(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+}
+
 export default function SettingsPage() {
   const [saving, setSaving] = useState<string | null>(null)
+  const [loadingInfo, setLoadingInfo] = useState(true)
+  const [hours, setHours] = useState<{ day_of_week: number; start_time: string; end_time: string; is_available: boolean }[]>([])
 
-  // Shop info state
+  // Shop info state (loaded from DB)
   const [shopName, setShopName] = useState('Aryan Blendz')
   const [shopAddress, setShopAddress] = useState(SHOP_ADDRESS)
   const [shopPhone, setShopPhone] = useState(CONTACT_PHONE)
@@ -41,6 +50,29 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [smsReminders, setSmsReminders] = useState(false)
   const [reminderTime, setReminderTime] = useState('24')
+
+  useEffect(() => {
+    Promise.all([adminGetBarberInfo(), getPublicHours()]).then(([info, publicHours]) => {
+      if (info) {
+        setShopName(info.name ?? 'Aryan Blendz')
+        setShopInstagram(info.instagram ?? '@aryanblendz')
+      }
+      setHours(publicHours)
+      setLoadingInfo(false)
+    }).catch(() => setLoadingInfo(false))
+  }, [])
+
+  const saveShopInfo = async () => {
+    setSaving('shop')
+    try {
+      await adminUpdateBarberInfo({ name: shopName, instagram: shopInstagram })
+      toast.success('Info saved!')
+    } catch {
+      toast.error('Failed to save info')
+    } finally {
+      setSaving(null)
+    }
+  }
 
   const saveTab = async (tab: string) => {
     setSaving(tab)
@@ -106,89 +138,95 @@ export default function SettingsPage() {
             </h3>
             <Separator className="bg-white/8" />
 
-            <FieldRow label="Shop Name">
-              <Input
-                value={shopName}
-                onChange={(e) => setShopName(e.target.value)}
-                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-              />
-            </FieldRow>
-
-            <FieldRow label="Address">
-              <Input
-                value={shopAddress}
-                onChange={(e) => setShopAddress(e.target.value)}
-                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-              />
-            </FieldRow>
-
-            <FieldRow label="Phone">
-              <Input
-                value={shopPhone}
-                onChange={(e) => setShopPhone(e.target.value)}
-                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-              />
-            </FieldRow>
-
-            <FieldRow label="Email">
-              <Input
-                type="email"
-                value={shopEmail}
-                onChange={(e) => setShopEmail(e.target.value)}
-                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-              />
-            </FieldRow>
-
-            <FieldRow label="Instagram">
-              <Input
-                value={shopInstagram}
-                onChange={(e) => setShopInstagram(e.target.value)}
-                placeholder="@yourhandle"
-                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-              />
-            </FieldRow>
-
-            <Separator className="bg-white/8" />
-
-            <div>
-              <h4 className="text-white/70 text-sm font-medium mb-3">Business Hours</h4>
-              <div className="space-y-2.5">
-                {dayOrder.map((day) => {
-                  const hours = BUSINESS_HOURS[day]
-                  return (
-                    <div key={day} className="flex items-center gap-3 text-sm">
-                      <span className="text-white/50 w-24 flex-shrink-0">{hours.label}</span>
-                      {hours.isOpen ? (
-                        <span className="text-white/60">
-                          {hours.open} – {hours.close}
-                        </span>
-                      ) : (
-                        <span className="text-white/25">Closed</span>
-                      )}
-                    </div>
-                  )
-                })}
-                <p className="text-white/30 text-xs mt-2">
-                  To edit hours, visit the Availability page.
-                </p>
+            {loadingInfo ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-gold-400 animate-spin" />
               </div>
-            </div>
+            ) : (
+              <>
+                <FieldRow label="Shop Name">
+                  <Input
+                    value={shopName}
+                    onChange={(e) => setShopName(e.target.value)}
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                  />
+                </FieldRow>
 
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => saveTab('shop')}
-                disabled={saving === 'shop'}
-              >
-                {saving === 'shop' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Shop Info'
-                )}
-              </Button>
-            </div>
+                <FieldRow label="Address">
+                  <Input
+                    value={shopAddress}
+                    onChange={(e) => setShopAddress(e.target.value)}
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Phone">
+                  <Input
+                    value={shopPhone}
+                    onChange={(e) => setShopPhone(e.target.value)}
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Email">
+                  <Input
+                    type="email"
+                    value={shopEmail}
+                    onChange={(e) => setShopEmail(e.target.value)}
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Instagram">
+                  <Input
+                    value={shopInstagram}
+                    onChange={(e) => setShopInstagram(e.target.value)}
+                    placeholder="@yourhandle"
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                  />
+                </FieldRow>
+
+                <Separator className="bg-white/8" />
+
+                <div>
+                  <h4 className="text-white/70 text-sm font-medium mb-3">Business Hours</h4>
+                  <div className="space-y-2.5">
+                    {dayOrder.map((dayNum) => {
+                      const dayLabel = DAYS_OF_WEEK.find((d) => d.value === dayNum)?.label ?? ''
+                      const row = hours.find((h) => h.day_of_week === dayNum)
+                      return (
+                        <div key={dayNum} className="flex items-center gap-3 text-sm">
+                          <span className="text-white/50 w-24 flex-shrink-0">{dayLabel}</span>
+                          {row?.is_available ? (
+                            <span className="text-white/60">
+                              {fmt12h(row.start_time)} – {fmt12h(row.end_time)}
+                            </span>
+                          ) : (
+                            <span className="text-white/25">Closed</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <p className="text-white/30 text-xs mt-2">
+                      To edit hours, visit the Availability page.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button onClick={saveShopInfo} disabled={saving === 'shop'}>
+                    {saving === 'shop' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Info'
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </TabsContent>
 
@@ -322,20 +360,23 @@ export default function SettingsPage() {
             </div>
 
             {smsReminders && (
-              <FieldRow label="Reminder Send Time">
-                <Select value={reminderTime} onValueChange={setReminderTime}>
-                  <SelectTrigger className="bg-charcoal-900 border-white/10 text-white max-w-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-charcoal-900 border-white/10">
-                    <SelectItem value="2">2 hours before</SelectItem>
-                    <SelectItem value="4">4 hours before</SelectItem>
-                    <SelectItem value="12">12 hours before</SelectItem>
-                    <SelectItem value="24">24 hours before</SelectItem>
-                    <SelectItem value="48">48 hours before</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FieldRow>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <Label className="text-white/70 text-sm sm:w-44 flex-shrink-0">Reminder Send Time</Label>
+                <div className="flex-1">
+                  <Select value={reminderTime} onValueChange={setReminderTime}>
+                    <SelectTrigger className="bg-charcoal-900 border-white/10 text-white max-w-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-charcoal-900 border-white/10">
+                      <SelectItem value="2">2 hours before</SelectItem>
+                      <SelectItem value="4">4 hours before</SelectItem>
+                      <SelectItem value="12">12 hours before</SelectItem>
+                      <SelectItem value="24">24 hours before</SelectItem>
+                      <SelectItem value="48">48 hours before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             )}
 
             <div className="flex justify-end pt-2">

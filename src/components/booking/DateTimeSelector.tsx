@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameMonth, isToday, isSameDay, addMonths, subMonths, getDay,
@@ -36,6 +36,7 @@ export function DateTimeSelector({
   const [slots, setSlots] = useState<string[]>([])
   const [bookedSlots, setBookedSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
+  const timeSlotsRef = useRef<HTMLDivElement>(null)
 
   // Load schedule (closed days + blocked dates) once on mount
   useEffect(() => {
@@ -81,6 +82,10 @@ export function DateTimeSelector({
     if (isDisabled(date)) return
     onDateSelect(format(date, 'yyyy-MM-dd'))
     onTimeSelect('')
+    // On mobile, scroll to time slots after picking a date
+    setTimeout(() => {
+      timeSlotsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 150)
   }
 
   return (
@@ -94,39 +99,39 @@ export function DateTimeSelector({
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col gap-4">
         {/* Calendar */}
-        <div className="flex-1 bg-charcoal-800 rounded-xl border border-white/8 p-5">
+        <div className="bg-charcoal-800 rounded-xl border border-white/8 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => setViewMonth(subMonths(viewMonth, 1))}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors active:bg-white/12"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
             <h3 className="font-semibold text-white text-sm">
               {format(viewMonth, 'MMMM yyyy')}
             </h3>
             <button
               onClick={() => setViewMonth(addMonths(viewMonth, 1))}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/8 transition-colors active:bg-white/12"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 mb-2">
+          <div className="grid grid-cols-7 mb-1">
             {DAYS_OF_WEEK.map((day) => (
-              <div key={day} className="text-center text-xs font-medium text-white/30 py-1">{day}</div>
+              <div key={day} className="text-center text-[11px] font-semibold text-white/30 py-1.5 uppercase tracking-wide">{day}</div>
             ))}
           </div>
 
           {scheduleLoading ? (
-            <div className="flex items-center justify-center h-36">
+            <div className="flex items-center justify-center h-40">
               <Loader2 className="w-5 h-5 text-gold-400 animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-7 gap-0.5">
+            <div className="grid grid-cols-7 gap-1">
               {calDays.map((date, i) => {
                 const disabled       = isDisabled(date)
                 const isCurrentMonth = isSameMonth(date, viewMonth)
@@ -139,12 +144,12 @@ export function DateTimeSelector({
                     onClick={() => handleDateClick(date)}
                     disabled={disabled || !isCurrentMonth}
                     className={cn(
-                      'aspect-square rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-gold-500',
+                      'aspect-square rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 active:scale-95',
                       !isCurrentMonth && 'opacity-0 pointer-events-none',
-                      isCurrentMonth && !disabled && !isSelectedDay && 'text-white hover:bg-gold-500/15 hover:text-gold-300',
+                      isCurrentMonth && !disabled && !isSelectedDay && 'text-white hover:bg-gold-500/15 hover:text-gold-300 active:bg-gold-500/20',
                       isSelectedDay && 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.4)]',
                       isTodayDate && !isSelectedDay && 'ring-1 ring-gold-500/40 text-gold-400',
-                      disabled && isCurrentMonth && 'text-white/20 cursor-not-allowed',
+                      disabled && isCurrentMonth && 'text-white/15 cursor-not-allowed',
                     )}
                   >
                     {format(date, 'd')}
@@ -154,89 +159,57 @@ export function DateTimeSelector({
             </div>
           )}
 
-          <div className="mt-4 flex items-center gap-4 text-xs text-white/30">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-gold-500/80" />
-              <span>Selected</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full ring-1 ring-gold-500/40" />
-              <span>Today</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-white/10" />
-              <span>Unavailable</span>
-            </div>
-          </div>
         </div>
 
         {/* Time slots */}
-        <div className="flex-1 bg-charcoal-800 rounded-xl border border-white/8 p-5">
+        <div ref={timeSlotsRef} className="bg-charcoal-800 rounded-xl border border-white/8 p-4 sm:p-5 scroll-mt-4">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="w-4 h-4 text-gold-500" />
             <h3 className="font-semibold text-white text-sm">
               {selectedDateObj
-                ? `Available times for ${format(selectedDateObj, 'EEE, MMM d')}`
-                : 'Select a date first'}
+                ? `Times for ${format(selectedDateObj, 'EEE, MMM d')}`
+                : 'Pick a date above'}
             </h3>
           </div>
 
           {!selectedDate ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center space-y-3">
+            <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-charcoal-700 flex items-center justify-center">
                 <Clock className="w-6 h-6 text-white/20" />
               </div>
               <p className="text-white/30 text-sm">
-                Pick a date on the calendar to see available time slots
+                Select a date to see available times
               </p>
             </div>
           ) : slotsLoading ? (
-            <div className="flex items-center justify-center h-48">
+            <div className="flex items-center justify-center py-10">
               <Loader2 className="w-5 h-5 text-gold-400 animate-spin" />
             </div>
-          ) : slots.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center space-y-2">
-              <p className="text-white/40 text-sm">No available slots on this day.</p>
+          ) : slots.filter(t => !bookedSlots.includes(t)).length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center space-y-2">
+              <p className="text-white/40 text-sm">No open slots on this day.</p>
               <p className="text-white/25 text-xs">Try a different date.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {slots.map((time) => {
-                const isBooked   = bookedSlots.includes(time)
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {slots.filter((time) => !bookedSlots.includes(time)).map((time) => {
                 const isSelected = selectedTime === time
-
                 return (
                   <button
                     key={time}
-                    onClick={() => !isBooked && onTimeSelect(time)}
-                    disabled={isBooked}
+                    onClick={() => onTimeSelect(time)}
                     className={cn(
-                      'rounded-lg py-2.5 px-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-1 focus-visible:ring-gold-500 relative',
-                      isSelected && 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.3)]',
-                      !isSelected && !isBooked && 'bg-charcoal-900 text-white hover:border-gold-500/50 hover:bg-gold-500/10 hover:text-gold-300 border border-white/6',
-                      isBooked && 'bg-charcoal-900/50 text-white/15 cursor-not-allowed border border-white/4',
+                      'rounded-xl py-3 px-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 active:scale-95',
+                      isSelected
+                        ? 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.3)]'
+                        : 'bg-charcoal-900 text-white active:bg-gold-500/15 border border-white/6',
                     )}
                   >
-                    {isBooked
-                      ? <span className="line-through">{formatTimeLabel(time)}</span>
-                      : formatTimeLabel(time)
-                    }
-                    {isBooked && (
-                      <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-charcoal-700 border border-charcoal-600 flex items-center justify-center">
-                        <span className="text-white/30" style={{ fontSize: '7px' }}>✕</span>
-                      </span>
-                    )}
+                    {formatTimeLabel(time)}
                   </button>
                 )
               })}
             </div>
-          )}
-
-          {selectedDate && slots.length > 0 && (
-            <p className="mt-4 text-xs text-white/25 flex items-center gap-1">
-              <span className="line-through text-white/20">9:00 AM</span>
-              <span>= Booked · Closed days are grayed out</span>
-            </p>
           )}
         </div>
       </div>

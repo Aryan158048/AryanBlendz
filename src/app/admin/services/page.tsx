@@ -54,8 +54,8 @@ export default function ServicesPage() {
   const [isSaving, setIsSaving]         = useState(false)
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } =
-    useForm<ServiceFormValues>({
-      resolver: zodResolver(serviceFormSchema),
+    useForm<ServiceFormValues, any, ServiceFormValues>({
+      resolver: zodResolver(serviceFormSchema) as any,
       defaultValues: { is_active: true, category: '' },
     })
 

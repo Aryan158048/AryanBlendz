@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,7 +19,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { CONTACT_EMAIL, CONTACT_PHONE, SHOP_ADDRESS, BUSINESS_HOURS } from '@/lib/constants'
+import { CONTACT_EMAIL, CONTACT_PHONE, SHOP_ADDRESS, DAYS_OF_WEEK } from '@/lib/constants'
+import { getPublicHours } from '@/app/actions/booking'
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -31,9 +32,19 @@ type ContactFormValues = z.infer<typeof contactSchema>
 
 const dayOrder = [1, 2, 3, 4, 5, 6, 0]
 
+function fmt12h(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+}
+
 export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [hours, setHours] = useState<{ day_of_week: number; start_time: string; end_time: string; is_available: boolean }[]>([])
+
+  useEffect(() => {
+    getPublicHours().then(setHours).catch(() => {})
+  }, [])
 
   const {
     register,
@@ -260,14 +271,15 @@ export default function ContactPage() {
                 </h3>
               </div>
               <div className="space-y-2">
-                {dayOrder.map((day) => {
-                  const hours = BUSINESS_HOURS[day]
+                {dayOrder.map((dayNum) => {
+                  const dayLabel = DAYS_OF_WEEK.find((d) => d.value === dayNum)?.label ?? ''
+                  const row = hours.find((h) => h.day_of_week === dayNum)
                   return (
-                    <div key={day} className="flex items-center justify-between">
-                      <span className="text-white/50 text-sm">{hours.label}</span>
-                      {hours.isOpen ? (
+                    <div key={dayNum} className="flex items-center justify-between">
+                      <span className="text-white/50 text-sm">{dayLabel}</span>
+                      {row?.is_available ? (
                         <span className="text-white/70 text-sm font-medium">
-                          {hours.open} – {hours.close}
+                          {fmt12h(row.start_time)} – {fmt12h(row.end_time)}
                         </span>
                       ) : (
                         <span className="text-white/30 text-sm">Closed</span>

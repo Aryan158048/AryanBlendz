@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from 'sonner'
@@ -16,6 +16,12 @@ const playfairDisplay = Playfair_Display({
   variable: '--font-playfair',
   display: 'swap',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: 'Aryan Blendz | Premium Barber Booking',
@@ -76,7 +82,7 @@ export default function RootLayout({
           <Footer />
           <Toaster
             theme="dark"
-            position="bottom-right"
+            position="bottom-center"
             toastOptions={{
               style: {
                 background: '#1a1a1a',

@@ -49,6 +49,7 @@
 @layer base {
   * {
     border-color: theme(colors.charcoal-800);
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
@@ -57,6 +58,18 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Full-height for mobile browsers */
+    min-height: 100dvh;
+  }
+
+  /* Better touch targets */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* Prevent iOS input zoom */
+  input, textarea, select {
+    font-size: max(16px, 1em);
   }
 
   h1, h2, h3, h4 {
@@ -194,6 +207,17 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Safe area utilities for notched phones */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pb-safe-4 {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pb-safe-6 {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
   }
 }
 

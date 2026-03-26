@@ -2,6 +2,39 @@
 
 // ── Public data actions (no auth required) ────────────────────────────────────
 
+export async function getBarberProfile() {
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const [barberRes, custRes] = await Promise.all([
+    admin.from('barbers').select('name, bio, specialties, instagram, years_experience, rating, total_reviews').eq('name', 'Aryan').single(),
+    admin.from('customers').select('*', { count: 'exact', head: true }),
+  ])
+  const b = barberRes.data ?? {}
+  return {
+    name:            (b as any).name            ?? 'Aryan',
+    bio:             (b as any).bio             ?? '',
+    specialties:     (b as any).specialties     ?? [],
+    instagram:       (b as any).instagram       ?? '@aryanblendz',
+    yearsExperience: (b as any).years_experience ?? 8,
+    rating:          (b as any).rating          ?? 4.9,
+    totalReviews:    (b as any).total_reviews   ?? 0,
+    totalCustomers:  custRes.count              ?? 0,
+  }
+}
+
+export async function getPublicHours() {
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  const { data: barberRow } = await admin.from('barbers').select('id').eq('name', 'Aryan').single()
+  if (!barberRow) return []
+  const { data } = await admin
+    .from('availability')
+    .select('day_of_week, start_time, end_time, is_available')
+    .eq('barber_id', barberRow.id)
+    .order('day_of_week')
+  return (data ?? []) as { day_of_week: number; start_time: string; end_time: string; is_available: boolean }[]
+}
+
 export async function getActiveServices() {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
@@ -70,15 +103,15 @@ export async function getAvailableSlots(date: string) {
 
   const { data: apts } = await admin
     .from('appointments')
-    .select('start_time')
+    .select('time')
     .eq('barber_id', barberRow.id)
-    .eq('appointment_date', date)
+    .eq('date', date)
     .in('status', ['pending', 'confirmed'])
 
   return {
     open: true,
     slots,
-    booked: ((apts ?? []) as any[]).map((a) => (a.start_time as string).slice(0, 5)),
+    booked: ((apts ?? []) as any[]).map((a) => (a.time as string).slice(0, 5)),
   }
 }
 
