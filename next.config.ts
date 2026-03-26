@@ -1,10 +1,29 @@
 import type { NextConfig } from 'next'
+import os from 'os'
+
+// Automatically detect all local network IPs so mobile devices always work,
+// regardless of which WiFi network the Mac is on.
+function getLanIPs(): string[] {
+  const ips: string[] = []
+  for (const iface of Object.values(os.networkInterfaces())) {
+    for (const addr of iface ?? []) {
+      if (addr.family === 'IPv4' && !addr.internal) {
+        ips.push(addr.address)
+      }
+    }
+  }
+  return ips
+}
+
+const lanIPs = getLanIPs()
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['10.78.161.49'],
+  // Allow dev resources (HMR/webpack) from any LAN IP
+  allowedDevOrigins: lanIPs,
   experimental: {
     serverActions: {
-      allowedOrigins: ['10.78.161.49:3000'],
+      // Allow server actions from any LAN IP (CSRF protection)
+      allowedOrigins: lanIPs.map((ip) => `${ip}:3000`),
     },
   },
   images: {

@@ -1,9 +1,8 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Star, Share2, Award, Heart, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BARBERS } from '@/lib/constants'
+import { getBarberProfile } from '@/app/actions/booking'
 
 export const metadata = {
   title: 'About | Aryan Blendz',
@@ -11,7 +10,9 @@ export const metadata = {
     'Learn about Aryan Blendz — our story, our team, and our commitment to premium barbering.',
 }
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const barber = await getBarberProfile()
+
   const values = [
     {
       icon: Zap,
@@ -32,6 +33,13 @@ export default function AboutPage() {
         'From the moment you book to the moment you walk out, every touchpoint is designed to feel elevated. No waiting around. No compromises. Just a world-class experience.',
     },
   ]
+
+  const initials = barber.name
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
     <main className="min-h-screen bg-charcoal-950">
@@ -63,20 +71,23 @@ export default function AboutPage() {
               Where It All Began
             </h2>
             <p className="text-white/60 leading-relaxed">
-              I&apos;ve been cutting hair for 8+ years — started young, kept going
-              because I genuinely love the craft. What began as cutting friends and
-              family grew into something real: a personal brand built on precision,
-              consistency, and actually caring about how you leave looking.
+              It started in my dorm room at Rutgers. I picked up clippers, started
+              cutting my friends, and realized I actually had a gift for it. Word
+              spread fast — because when you&apos;re a broke college student who wants
+              a clean cut without leaving campus, finding someone who can actually
+              deliver is a big deal.
             </p>
             <p className="text-white/60 leading-relaxed">
-              I cut out of Judson Suites in Piscataway, right near Rutgers. My setup
-              is private, clean, and focused — no loud shop, no rush, no distractions.
-              When you&apos;re in my chair, you have my complete attention.
+              What started as dorm-room cuts turned into Aryan Blendz — a real brand
+              built for students who want a premium haircut without the premium hassle.
+              I now cut out of Judson Suites in Piscataway, right near Rutgers. Private
+              setup, no waiting, no walk-in stress. Just you and a barber who genuinely
+              cares about how you leave looking.
             </p>
             <p className="text-white/60 leading-relaxed">
-              I&apos;ve served hundreds of clients and built a loyal following by keeping
-              it simple: show up on time, know what you&apos;re doing, and make sure
-              every person walks out looking their best. That&apos;s the Aryan Blendz standard.
+              100+ clients in and the mission hasn&apos;t changed: show up on time,
+              know your craft, and make sure every person walks out sharper than they
+              came in. That&apos;s the Aryan Blendz standard.
             </p>
           </div>
           <div className="relative">
@@ -84,16 +95,18 @@ export default function AboutPage() {
               <div className="w-full h-full bg-gradient-to-br from-charcoal-800 via-charcoal-900 to-charcoal-950 flex items-center justify-center">
                 <div className="text-center px-8">
                   <div className="text-8xl font-display font-bold text-gradient-gold mb-2">
-                    8+
+                    {barber.yearsExperience}+
                   </div>
                   <div className="text-white/50 text-lg">Years of Excellence</div>
                   <div className="mt-6 grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <div className="text-3xl font-bold text-gold-400">500+</div>
+                      <div className="text-3xl font-bold text-gold-400">
+                        {barber.totalCustomers > 0 ? `${barber.totalCustomers}+` : '100+'}
+                      </div>
                       <div className="text-white/30 text-xs mt-1">Happy Clients</div>
                     </div>
                     <div>
-                      <div className="text-3xl font-bold text-gold-400">4.9</div>
+                      <div className="text-3xl font-bold text-gold-400">{barber.rating}</div>
                       <div className="text-white/30 text-xs mt-1">Avg Rating</div>
                     </div>
                     <div>
@@ -110,7 +123,7 @@ export default function AboutPage() {
             </div>
             <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-[var(--shadow-gold-lg)]">
               <div className="text-center">
-                <div className="text-charcoal-950 font-bold text-lg leading-none">4.9</div>
+                <div className="text-charcoal-950 font-bold text-lg leading-none">{barber.rating}</div>
                 <Star className="w-4 h-4 text-charcoal-950 fill-charcoal-950 mx-auto mt-0.5" />
               </div>
             </div>
@@ -118,84 +131,73 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Meet the team */}
+      {/* Meet Your Barber */}
       <section className="py-20 bg-charcoal-900/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="font-display text-4xl font-bold text-white mb-3">
-              Meet the{' '}
-              <span className="text-gradient-gold">Team</span>
+              Meet Your{' '}
+              <span className="text-gradient-gold">Barber</span>
             </h2>
-            <p className="text-white/50 max-w-xl mx-auto">
-              Four talented barbers, one shared commitment to excellence.
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {BARBERS.map((barber) => (
-              <div
-                key={barber.id}
-                className="glass gold-border rounded-2xl overflow-hidden group hover:border-gold-400/40 transition-colors"
-              >
-                <div className="aspect-square relative overflow-hidden">
-                  <Image
-                    src={barber.avatar_url ?? ''}
-                    alt={barber.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950 via-transparent to-transparent" />
-                  <div className="absolute bottom-3 left-3">
-                    <div className="flex items-center gap-1 bg-charcoal-950/80 backdrop-blur-sm px-2 py-1 rounded-lg">
-                      <Star className="w-3 h-3 text-gold-400 fill-gold-400" />
-                      <span className="text-white text-xs font-medium">{barber.rating}</span>
-                      <span className="text-white/40 text-xs">({barber.total_reviews})</span>
-                    </div>
-                  </div>
+          <div className="max-w-sm mx-auto">
+            <div className="glass gold-border rounded-2xl overflow-hidden hover:border-gold-400/40 transition-colors">
+              <div className="aspect-square relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-charcoal-800 via-charcoal-900 to-charcoal-950">
+                <div className="w-28 h-28 rounded-full bg-gradient-gold flex items-center justify-center shadow-[var(--shadow-gold)]">
+                  <span className="font-display text-4xl font-bold text-charcoal-950">
+                    {initials}
+                  </span>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-display text-lg font-bold text-white">
-                        {barber.name}
-                      </h3>
-                      <p className="text-gold-400/70 text-xs">
-                        {barber.years_experience} yrs experience
-                      </p>
-                    </div>
-                    {barber.instagram && (
-                      <a
-                        href={`https://instagram.com/${barber.instagram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-white/30 hover:text-gold-400 transition-colors"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
-                  <p className="text-white/40 text-xs leading-relaxed mb-3 line-clamp-3">
-                    {barber.bio}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {barber.specialties.slice(0, 2).map((s) => (
-                      <Badge
-                        key={s}
-                        className="text-[10px] px-2 py-0.5 bg-gold-500/8 text-gold-400/80 border-gold-500/20"
-                      >
-                        {s}
-                      </Badge>
-                    ))}
-                    {barber.specialties.length > 2 && (
-                      <Badge className="text-[10px] px-2 py-0.5 bg-white/5 text-white/30 border-white/8">
-                        +{barber.specialties.length - 2}
-                      </Badge>
-                    )}
+                <div className="absolute bottom-3 left-3">
+                  <div className="flex items-center gap-1 bg-charcoal-950/80 backdrop-blur-sm px-2 py-1 rounded-lg">
+                    <Star className="w-3 h-3 text-gold-400 fill-gold-400" />
+                    <span className="text-white text-xs font-medium">{barber.rating}</span>
+                    <span className="text-white/40 text-xs">({barber.totalReviews})</span>
                   </div>
                 </div>
               </div>
-            ))}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-white">
+                      {barber.name}
+                    </h3>
+                    <p className="text-gold-400/70 text-xs">
+                      {barber.yearsExperience} yrs experience
+                    </p>
+                  </div>
+                  {barber.instagram && (
+                    <a
+                      href={`https://instagram.com/${barber.instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white/30 hover:text-gold-400 transition-colors"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+                <p className="text-white/40 text-xs leading-relaxed mb-3">
+                  {barber.bio}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {(barber.specialties as string[]).slice(0, 2).map((s) => (
+                    <Badge
+                      key={s}
+                      className="text-[10px] px-2 py-0.5 bg-gold-500/8 text-gold-400/80 border-gold-500/20"
+                    >
+                      {s}
+                    </Badge>
+                  ))}
+                  {(barber.specialties as string[]).length > 2 && (
+                    <Badge className="text-[10px] px-2 py-0.5 bg-white/5 text-white/30 border-white/8">
+                      +{(barber.specialties as string[]).length - 2}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

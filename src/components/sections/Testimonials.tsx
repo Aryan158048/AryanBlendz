@@ -10,30 +10,28 @@ interface Testimonial {
 const testimonials: Testimonial[] = [
   {
     quote:
-      'Best barber in the city. The attention to detail is unmatched. Every visit is an experience I look forward to.',
-    name: 'Marcus T.',
-    role: 'Regular Client',
+      "The fade is so clean it looks Photoshopped, and the line-up is so sharp it could slice bread. He doesn't just give cuts, he gives life upgrades — confidence comes after every appointment.",
+    name: '@kachau23_',
+    role: 'via Instagram',
     rating: 5,
   },
   {
     quote:
-      "Booking was effortless and the cut was perfect. Exactly what I wanted — I'll be back every time.",
-    name: 'James K.',
-    role: 'New Client',
+      "He doesn't just cut hair, he sculpts it. The precision, the fade, and the way he lines everything up so clean it looks airbrushed is unreal. I always walk out feeling sharper and more confident.",
+    name: '@kachau23_',
+    role: 'via Instagram',
     rating: 5,
   },
   {
-    quote:
-      "I've been coming here for 2 years. Never leaving. The vibe, the skill, the consistency — it's unreal.",
-    name: 'Devon R.',
-    role: 'Loyal Customer',
+    quote: 'Got me right.',
+    name: '@anirudh.con',
+    role: 'via Instagram',
     rating: 5,
   },
   {
-    quote:
-      'The premium package is worth every penny. Top-tier grooming experience from start to finish.',
-    name: 'Alex M.',
-    role: 'Premium Client',
+    quote: 'Bro looks clean.',
+    name: '@prajwal_khnl',
+    role: 'via Instagram',
     rating: 5,
   },
 ]

@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import Image from 'next/image'
-import { CheckCircle2, ArrowRight, Scissors, Star, Award, Users } from 'lucide-react'
+import { CheckCircle2, ArrowRight, Star, Award, Users, Quote } from 'lucide-react'
 import { getBarberProfile } from '@/app/actions/booking'
 
 const highlights = [
@@ -10,71 +9,92 @@ const highlights = [
   'One Barber, Full Focus on You',
 ]
 
+const testimonials = [
+  {
+    quote:
+      "The fade is so clean it looks Photoshopped. He doesn't just give cuts, he gives life upgrades — confidence comes after every appointment.",
+    name: '@kachau23_',
+  },
+  {
+    quote:
+      "He doesn't just cut hair, he sculpts it. I always walk out feeling sharper and more confident.",
+    name: '@kachau23_',
+  },
+  {
+    quote: 'Got me right.',
+    name: '@anirudh.con',
+  },
+]
+
 export default async function AboutSection() {
   const profile = await getBarberProfile().catch(() => ({
-    rating: 4.9, totalCustomers: 0, yearsExperience: 8,
+    rating: 4.9, totalCustomers: 0, yearsExperience: 3,
   }))
 
   const achievements = [
-    { icon: Star,  value: String(profile.rating),  label: 'Avg Rating' },
-    { icon: Users, value: profile.totalCustomers > 0 ? `${profile.totalCustomers}+` : '500+', label: 'Clients Served' },
-    { icon: Award, value: `${profile.yearsExperience} Yrs`, label: 'Experience' },
+    { icon: Star,  value: String(profile.rating),                                                  label: 'Avg Rating' },
+    { icon: Users, value: profile.totalCustomers > 0 ? `${profile.totalCustomers}+` : '100+',     label: 'Clients Served' },
+    { icon: Award, value: `${profile.yearsExperience} Yrs`,                                        label: 'Experience' },
   ]
+
   return (
     <section className="py-24 bg-[#0D0D0D] relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-
-      {/* Decorative glow */}
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-gold-500/3 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 
-          {/* Left: Photo */}
-          <div className="order-2 lg:order-1 flex items-center justify-center">
-            <div className="relative w-full max-w-sm">
-              {/* Outer glow */}
-              <div className="absolute -inset-6 rounded-3xl bg-gold-500/4 blur-2xl" />
+          {/* Left: Testimonials + stats */}
+          <div className="order-2 lg:order-1 flex flex-col gap-4">
 
-              {/* Photo card */}
-              <div className="relative rounded-2xl overflow-hidden border border-gold-500/15 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.7)]">
-                <div className="aspect-[4/5] bg-charcoal-800 relative">
-                  <Image
-                    src="/images/aryan.jpg"
-                    alt="Aryan — Barber"
-                    fill
-                    className="object-cover object-top"
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-b from-charcoal-800 to-charcoal-900 opacity-0">
-                    <div className="w-20 h-20 rounded-full bg-gold-500/10 border-2 border-gold-500/20 flex items-center justify-center">
-                      <Scissors className="w-9 h-9 text-gold-400 rotate-[-45deg]" strokeWidth={1.5} />
-                    </div>
-                    <p className="text-white/30 text-sm text-center px-4">Drop your photo at<br/><span className="text-white/50 font-mono text-xs">public/images/aryan.jpg</span></p>
+            {/* Stats row */}
+            <div className="flex items-center gap-3 mb-1">
+              {achievements.map(({ icon: Icon, value, label }) => (
+                <div key={label} className="flex-1 flex items-center gap-2 bg-charcoal-900/80 border border-gold-500/15 rounded-xl px-3 py-2.5">
+                  <Icon className="w-3.5 h-3.5 text-gold-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-white text-sm font-bold leading-none">{value}</p>
+                    <p className="text-white/35 text-[10px] leading-none mt-0.5">{label}</p>
                   </div>
-                  {/* Gradient overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-charcoal-950/90 to-transparent" />
-                  {/* Name label */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className="font-display text-xl font-bold text-white" style={{ fontFamily: 'var(--font-playfair), "Playfair Display", Georgia, serif' }}>Aryan</p>
-                    <p className="text-gold-400 text-xs font-medium tracking-wide mt-0.5">Barber · @aryanblendz</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Testimonial cards */}
+            {testimonials.map((t, i) => (
+              <div
+                key={i}
+                className="group relative flex flex-col gap-3 p-5 rounded-xl bg-charcoal-900/60 border border-white/6 hover:border-gold-500/20 hover:bg-charcoal-900/80 transition-all duration-300"
+              >
+                <Quote
+                  size={22}
+                  className="text-gold-500/25 -scale-x-100 -mt-0.5 flex-shrink-0"
+                  strokeWidth={1.5}
+                />
+                <p className="text-sm text-white/65 leading-relaxed italic flex-1">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center justify-between pt-2 border-t border-white/6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-700 to-gold-500 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-bold text-charcoal-950">
+                        {t.name.replace('@', '').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="text-xs text-white/40 font-medium">{t.name}</span>
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <Star key={j} size={10} strokeWidth={0} className="fill-gold-400 text-gold-400" />
+                    ))}
                   </div>
                 </div>
               </div>
+            ))}
 
-              {/* Achievement badges */}
-              <div className="absolute -right-4 top-8 flex flex-col gap-2">
-                {achievements.map(({ icon: Icon, value, label }) => (
-                  <div key={label} className="flex items-center gap-2 bg-charcoal-900/95 border border-gold-500/20 rounded-xl px-3 py-2 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)] backdrop-blur-sm">
-                    <Icon className="w-3.5 h-3.5 text-gold-400 flex-shrink-0" />
-                    <div>
-                      <p className="text-white text-xs font-bold leading-none">{value}</p>
-                      <p className="text-white/35 text-[9px] leading-none mt-0.5">{label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-white/25 text-center pt-1">Real reviews from Instagram</p>
           </div>
 
           {/* Right: Text content */}
@@ -95,33 +115,26 @@ export default async function AboutSection() {
             <div className="h-px w-16 bg-gold-500/40" />
 
             <p className="text-sm sm:text-base text-white/55 leading-relaxed">
-              I've been cutting hair for 8+ years and built Aryan Blendz around one simple
-              idea — every client deserves a clean, precise cut with real attention to detail.
-              No crowded waiting rooms, no rushing. Just you, the chair, and a barber who
-              actually cares.
+              Started cutting in my dorm at Rutgers and built Aryan Blendz from the ground up —
+              one cut at a time. My mission is simple: give students a premium haircut without
+              the premium hassle. No crowded shop, no long waits, no compromises.
             </p>
 
             <p className="text-sm sm:text-base text-white/45 leading-relaxed">
-              I cut out of Judson Suites in Piscataway, right near Rutgers. Whether you want
-              a fresh fade, a sharp lineup, or a full cut and beard — book a slot and I'll
+              I cut out of Judson Suites in Piscataway, right near campus. Whether you want
+              a fresh fade, a sharp lineup, or a full cut and beard — book a slot and I&apos;ll
               make sure you leave looking right.
             </p>
 
-            {/* Highlights */}
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {highlights.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <CheckCircle2
-                    size={16}
-                    className="text-gold-500 flex-shrink-0 mt-0.5"
-                    strokeWidth={2}
-                  />
+                  <CheckCircle2 size={16} className="text-gold-500 flex-shrink-0 mt-0.5" strokeWidth={2} />
                   <span className="text-sm text-white/65 leading-snug">{item}</span>
                 </li>
               ))}
             </ul>
 
-            {/* CTA */}
             <div className="flex items-center gap-4 pt-2">
               <Link
                 href="/booking"

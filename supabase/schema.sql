@@ -130,6 +130,38 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Weekly Schedules (Rutgers schedule matcher)
+-- Stores both the admin's class schedule (role='admin') and optionally
+-- student schedules (role='student') as structured busy-time blocks.
+CREATE TABLE IF NOT EXISTS weekly_schedules (
+  id            UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID        REFERENCES auth.users(id) ON DELETE CASCADE,
+  role          TEXT        NOT NULL CHECK (role IN ('admin', 'student')),
+  semester      TEXT        NOT NULL DEFAULT 'Current',
+  -- JSONB map of day → [{id, start, end, title}] in 24-hour "HH:MM" format
+  schedule_data JSONB       NOT NULL DEFAULT '{}',
+  image_url     TEXT,
+  is_active     BOOLEAN     NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_weekly_schedules_role   ON weekly_schedules(role, is_active);
+CREATE INDEX IF NOT EXISTS idx_weekly_schedules_user   ON weekly_schedules(user_id);
+
+ALTER TABLE weekly_schedules ENABLE ROW LEVEL SECURITY;
+
+-- Admins can manage all weekly schedules
+CREATE POLICY "weekly_schedules_admin_all"
+  ON weekly_schedules FOR ALL
+  USING (auth.jwt() ->> 'role' = 'admin')
+  WITH CHECK (auth.jwt() ->> 'role' = 'admin');
+
+-- Anyone can read the active admin schedule (needed for overlap calculation on student page)
+CREATE POLICY "weekly_schedules_public_read_admin"
+  ON weekly_schedules FOR SELECT
+  USING (role = 'admin' AND is_active = TRUE);
+
 -- ────────────────────────────────────────────────────────────
 -- FUNCTIONS & TRIGGERS
 -- ────────────────────────────────────────────────────────────
@@ -288,25 +320,13 @@ VALUES
    90, 75.00, 'premium', TRUE, 6)
 ON CONFLICT DO NOTHING;
 
--- Seed barbers (user_id left NULL for seed; link after auth setup)
+-- Seed barber — single-barber setup (Aryan only)
 INSERT INTO barbers (name, bio, specialties, is_active, instagram, years_experience, rating, total_reviews)
 VALUES
   ('Aryan',
-   'Founder of Aryan Blendz with over 8 years of experience. Specializes in fades, skin taper cuts, and creative hair designs.',
-   '["Skin Fades", "Tapers", "Hair Designs", "Beard Sculpting"]',
-   TRUE, '@aryanblendz', 8, 4.9, 312),
-  ('Marcus',
-   'A master of classic cuts and modern styles. 6 years experience with a passion for curly hair textures and textured fades.',
-   '["Classic Cuts", "Textured Fades", "Curly Hair", "Hot Towel Shave"]',
-   TRUE, '@marcus_cuts', 6, 4.8, 228),
-  ('Jerome',
-   'Jerome is the go-to guy for premium grooming and straight razor shaves. 5 years of precision work.',
-   '["Straight Razor Shave", "Low Fades", "Beard Grooming", "Kids Cuts"]',
-   TRUE, '@jerome_shaves', 5, 4.8, 184),
-  ('Darius',
-   'Trained at one of New York''s top barbering schools. Brings fresh energy, creative designs, and solid fundamentals.',
-   '["Creative Designs", "High Fades", "Afro Styling", "Lineups"]',
-   TRUE, '@darius_blendz', 3, 4.7, 96)
+   'Founder of Aryan Blendz. Started cutting in my dorm at Rutgers and built a loyal following one cut at a time. I specialize in Tapers, Fades, and Beards — and I bring the same precision and care to every single client.',
+   '["Skin Fades", "Tapers", "Hair Designs", "Beard Sculpting", "Lineups", "Hot Towel Shave"]',
+   TRUE, '@aryanblendz', 3, 4.9, 20)
 ON CONFLICT DO NOTHING;
 
 -- Seed default availability for all barbers

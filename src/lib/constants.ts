@@ -1,8 +1,6 @@
 import type {
   Service,
-  Barber,
   TimeSlot,
-  Testimonial,
   AppointmentStatus,
   BookingStep,
   SelectOption,
@@ -76,24 +74,6 @@ export const SERVICES: Service[] = [
     category: 'premium',
     is_active: true,
     display_order: 6,
-  },
-]
-
-// ─── Barbers ─────────────────────────────────────────────────────────────────
-
-export const BARBERS: Barber[] = [
-  {
-    id: 'brb_aryan',
-    user_id: 'usr_aryan',
-    name: 'Aryan',
-    bio: 'Founder of Aryan Blendz with over 8 years of experience. Specializes in fades, skin taper cuts, and creative hair designs. Known for his obsessive attention to detail, clean lines, and making every client look their absolute best.',
-    specialties: ['Skin Fades', 'Tapers', 'Hair Designs', 'Beard Sculpting', 'Lineups', 'Hot Towel Shave'],
-    avatar_url: '/images/aryan.jpg',
-    is_active: true,
-    instagram: '@aryanblendz',
-    years_experience: 8,
-    rating: 4.9,
-    total_reviews: 312,
   },
 ]
 
@@ -207,51 +187,6 @@ export const STATUS_COLORS: Record<
     dot:    'bg-gray-400',
   },
 }
-
-// ─── Testimonials ─────────────────────────────────────────────────────────────
-
-export const TESTIMONIALS: Testimonial[] = [
-  {
-    id: 'test_1',
-    author: 'Jordan Williams',
-    avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&h=200&fit=crop',
-    rating: 5,
-    content:
-      "Best cuts on campus, no cap. Aryan got me right every single time. The fade is always clean, the beard shape is on point, and the whole vibe is just different. Booked online in like 2 minutes — no waiting around. This is my spot for life.",
-    date: '2026-02-18',
-    service: 'Haircut + Beard Combo',
-  },
-  {
-    id: 'test_2',
-    author: 'Malik Thompson',
-    avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=200&h=200&fit=crop',
-    rating: 5,
-    content:
-      "Marcus is an absolute artist with the clippers. I have pretty thick, curly hair and most barbers mess it up, but he knew exactly what to do. Walked out looking fresh as hell. The booking system is super easy — picked my barber, my time, done. Highly recommend.",
-    date: '2026-01-30',
-    service: 'Classic Haircut',
-  },
-  {
-    id: 'test_3',
-    author: 'Deshawn Carter',
-    avatar: 'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&h=200&fit=crop',
-    rating: 5,
-    content:
-      "Tried the Premium Grooming Package for my birthday and it was worth every penny. Hot towel shave, scalp massage, the works. Jerome has incredibly steady hands and the straight razor shave was next level. Left feeling like a whole new person. This place is top tier.",
-    date: '2026-03-05',
-    service: 'Premium Grooming Package',
-  },
-  {
-    id: 'test_4',
-    author: 'Chris Okonkwo',
-    avatar: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=200&h=200&fit=crop',
-    rating: 5,
-    content:
-      "I'm super particular about my hair and I've gone through too many barbers who don't listen. Darius actually took time to understand what I wanted and then delivered something even better than I imagined. The hair design he added was clean. Already booked my next appointment.",
-    date: '2026-03-12',
-    service: 'Classic Haircut',
-  },
-]
 
 // ─── Service Categories ───────────────────────────────────────────────────────
 

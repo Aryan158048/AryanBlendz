@@ -1,13 +1,47 @@
 import Link from 'next/link'
 import { Clock, MapPin, Phone, Mail, ExternalLink } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getPublicHours } from '@/app/actions/booking'
 
-const hours = [
-  { day: 'Monday – Friday', time: '9:00 AM – 7:00 PM', open: true },
-  { day: 'Saturday', time: '8:00 AM – 6:00 PM', open: true },
-  { day: 'Sunday', time: 'Closed', open: false },
-]
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAY_ORDER  = [1, 2, 3, 4, 5, 6, 0] // Mon → Sun
 
-export default function LocationSection() {
+function fmt12h(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+}
+
+async function getShopContact() {
+  try {
+    const admin = createAdminClient()
+    const { data } = await admin.from('settings').select('key, value')
+    const map: Record<string, string> = {}
+    for (const row of data ?? []) {
+      try { map[row.key] = JSON.parse(row.value) } catch { map[row.key] = row.value }
+    }
+    return {
+      address:   map.shop_address ?? '',
+      phone:     map.shop_phone   ?? '',
+      email:     map.shop_email   ?? '',
+    }
+  } catch {
+    return { address: '', phone: '', email: '' }
+  }
+}
+
+export default async function LocationSection() {
+  const [hours, contact] = await Promise.all([getPublicHours(), getShopContact()])
+
+  const mapsUrl = contact.address
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(contact.address)}`
+    : 'https://maps.google.com'
+
+  const contactRows = [
+    contact.address && { icon: MapPin, text: contact.address,  href: mapsUrl },
+    contact.phone   && { icon: Phone,  text: contact.phone,    href: `tel:${contact.phone.replace(/\D/g, '')}` },
+    contact.email   && { icon: Mail,   text: contact.email,    href: `mailto:${contact.email}` },
+  ].filter(Boolean) as { icon: React.ElementType; text: string; href: string }[]
+
   return (
     <section className="py-24 bg-charcoal-950 relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
@@ -31,11 +65,10 @@ export default function LocationSection() {
           </div>
         </div>
 
-        {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+
           {/* Hours card */}
           <div className="flex flex-col gap-6 p-7 rounded-xl bg-charcoal-800 border border-white/6 hover:border-gold-500/20 transition-all duration-300">
-            {/* Card header */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
                 <Clock size={18} className="text-gold-400" strokeWidth={1.75} />
@@ -48,28 +81,24 @@ export default function LocationSection() {
 
             <div className="h-px bg-white/5" />
 
-            {/* Hours list */}
-            <ul className="flex flex-col gap-3.5">
-              {hours.map(({ day, time, open }) => (
-                <li key={day} className="flex items-center justify-between gap-4">
-                  <span className="text-sm text-white/55">{day}</span>
-                  <div className="flex items-center gap-2">
-                    {open ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/70 flex-shrink-0" />
-                    ) : (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/20 flex-shrink-0" />
-                    )}
-                    <span
-                      className={[
-                        'text-sm font-medium',
-                        open ? 'text-white/80' : 'text-white/25',
-                      ].join(' ')}
-                    >
-                      {time}
-                    </span>
-                  </div>
-                </li>
-              ))}
+            <ul className="flex flex-col gap-3">
+              {hours.length > 0 ? DAY_ORDER.map((dayNum) => {
+                const row  = hours.find((h) => h.day_of_week === dayNum)
+                const open = row?.is_available ?? false
+                return (
+                  <li key={dayNum} className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-white/55 w-24 flex-shrink-0">{DAY_LABELS[dayNum]}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${open ? 'bg-emerald-500/70' : 'bg-white/20'}`} />
+                      <span className={`text-sm font-medium ${open ? 'text-white/80' : 'text-white/25'}`}>
+                        {open && row ? `${fmt12h(row.start_time)} – ${fmt12h(row.end_time)}` : 'Closed'}
+                      </span>
+                    </div>
+                  </li>
+                )
+              }) : (
+                <li className="text-sm text-white/30">Hours not set — configure in admin.</li>
+              )}
             </ul>
 
             <div className="mt-auto">
@@ -84,7 +113,6 @@ export default function LocationSection() {
 
           {/* Location card */}
           <div className="flex flex-col gap-6 p-7 rounded-xl bg-charcoal-800 border border-white/6 hover:border-gold-500/20 transition-all duration-300">
-            {/* Card header */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-gold-500/10 border border-gold-500/20 flex items-center justify-center">
                 <MapPin size={18} className="text-gold-400" strokeWidth={1.75} />
@@ -109,59 +137,48 @@ export default function LocationSection() {
               />
               <div className="relative flex flex-col items-center gap-1.5">
                 <MapPin size={22} className="text-gold-400" strokeWidth={2} />
-                <span className="text-xs text-white/40">103 Davidson Rd, Piscataway</span>
+                {contact.address && (
+                  <span className="text-xs text-white/40 text-center px-4">{contact.address}</span>
+                )}
               </div>
             </div>
 
             {/* Contact info */}
-            <ul className="flex flex-col gap-3">
-              {[
-                {
-                  icon: MapPin,
-                  text: 'Judson Suites, 103 Davidson Rd, Piscataway, NJ 08854',
-                  href: 'https://maps.google.com/maps?q=103+Davidson+Rd,+Piscataway,+NJ+08854',
-                },
-                { icon: Phone, text: '201-748-9849', href: 'tel:+12017489849' },
-                {
-                  icon: Mail,
-                  text: 'hello@aryanblendz.com',
-                  href: 'mailto:hello@aryanblendz.com',
-                },
-              ].map(({ icon: Icon, text, href }) => (
-                <li key={text}>
-                  <a
-                    href={href}
-                    target={href.startsWith('http') ? '_blank' : undefined}
-                    rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className="flex items-start gap-3 text-sm text-white/50 hover:text-white/80 transition-colors duration-200 group"
-                  >
-                    <Icon
-                      size={14}
-                      className="text-gold-500/70 flex-shrink-0 mt-0.5 group-hover:text-gold-400 transition-colors duration-200"
-                      strokeWidth={2}
-                    />
-                    <span>{text}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            {contactRows.length > 0 && (
+              <ul className="flex flex-col gap-3">
+                {contactRows.map(({ icon: Icon, text, href }) => (
+                  <li key={text}>
+                    <a
+                      href={href}
+                      target={href.startsWith('http') ? '_blank' : undefined}
+                      rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                      className="flex items-start gap-3 text-sm text-white/50 hover:text-white/80 transition-colors duration-200 group"
+                    >
+                      <Icon
+                        size={14}
+                        className="text-gold-500/70 flex-shrink-0 mt-0.5 group-hover:text-gold-400 transition-colors duration-200"
+                        strokeWidth={2}
+                      />
+                      <span>{text}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="mt-auto">
               <a
-                href="https://maps.google.com/maps?q=103+Davidson+Rd,+Piscataway,+NJ+08854"
+                href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center w-full gap-2 py-3 rounded-md text-sm font-semibold tracking-wide text-gold-400 border border-gold-500/30 hover:border-gold-500/60 hover:text-gold-300 transition-all duration-200 group"
               >
                 Get Directions
-                <ExternalLink
-                  size={13}
-                  strokeWidth={2.5}
-                  className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200"
-                />
+                <ExternalLink size={13} strokeWidth={2.5} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
               </a>
             </div>
           </div>
+
         </div>
       </div>
     </section>

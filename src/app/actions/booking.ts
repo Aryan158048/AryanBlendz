@@ -6,7 +6,7 @@ export async function getBarberProfile() {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
   const [barberRes, custRes] = await Promise.all([
-    admin.from('barbers').select('name, bio, specialties, instagram, years_experience, rating, total_reviews').eq('name', 'Aryan').single(),
+    admin.from('barbers').select('name, bio, specialties, instagram, years_experience, rating, total_reviews').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single(),
     admin.from('customers').select('*', { count: 'exact', head: true }),
   ])
   const b = barberRes.data ?? {}
@@ -25,7 +25,7 @@ export async function getBarberProfile() {
 export async function getPublicHours() {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
-  const { data: barberRow } = await admin.from('barbers').select('id').eq('name', 'Aryan').single()
+  const { data: barberRow } = await admin.from('barbers').select('id').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single()
   if (!barberRow) return []
   const { data } = await admin
     .from('availability')
@@ -50,7 +50,7 @@ export async function getBarberSchedule() {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
   const { data: barberRow } = await admin
-    .from('barbers').select('id').eq('name', 'Aryan').single()
+    .from('barbers').select('id').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single()
   if (!barberRow) return { closedDays: [0,1,2,3,4,5,6] as number[], blockedDates: [] as string[] }
 
   const today = new Date().toISOString().split('T')[0]
@@ -76,7 +76,7 @@ export async function getAvailableSlots(date: string) {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
   const { data: barberRow } = await admin
-    .from('barbers').select('id').eq('name', 'Aryan').single()
+    .from('barbers').select('id').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single()
   if (!barberRow) return { open: false, slots: [] as string[], booked: [] as string[] }
 
   const dayOfWeek = new Date(date + 'T12:00:00').getDay()
@@ -126,6 +126,7 @@ export async function getAvailableSlots(date: string) {
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendBookingConfirmation } from '@/lib/email/send'
+import { sendCustomerSMSConfirmation, sendAdminSMSAlert } from '@/lib/sms/send'
 import { generateConfirmationCode } from '@/lib/utils'
 import { z } from 'zod'
 
@@ -192,6 +193,7 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
         .select('id, name')
         .ilike('name', data.barberName)
         .eq('is_active', true)
+        .order('created_at', { ascending: true })
         .limit(1)
         .single()
 
@@ -204,6 +206,7 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
         .from('barbers')
         .select('id, name')
         .eq('is_active', true)
+        .order('created_at', { ascending: true })
         .limit(1)
         .single()
 
@@ -291,22 +294,52 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
       return { success: false, error: 'Failed to save your appointment. Please try again.' }
     }
 
-    // ── 6. Send confirmation email (non-blocking) ────────────────────────────
-    try {
-      await sendBookingConfirmation({
-        customerName:    data.customerName,
-        customerEmail:   data.customerEmail,
-        confirmationCode,
-        serviceName:     serviceRow.name,
-        serviceDuration: serviceRow.duration as number,
-        servicePrice:    Number(serviceRow.price),
-        barberName:      barberRow.name,
-        date:            data.date,
-        time:            data.time,
-      })
-    } catch (emailErr) {
-      console.error('[createBooking] email (non-fatal):', emailErr)
+    // ── 6. Notifications (email + SMS, non-blocking) ─────────────────────────
+    // Read shop info once for SMS messages
+    const shopSettings = await supabase.from('settings').select('key, value')
+    const shopMap: Record<string, string> = {}
+    for (const row of shopSettings.data ?? []) {
+      try { shopMap[row.key] = JSON.parse(row.value) } catch { shopMap[row.key] = row.value }
     }
+    const shopName    = shopMap.shop_name    ?? 'Aryan Blendz'
+    const shopPhone   = shopMap.shop_phone   ?? ''
+    const shopAddress = shopMap.shop_address ?? ''
+
+    // Email (customer confirmation + admin alert built into one call)
+    sendBookingConfirmation({
+      customerName:    data.customerName,
+      customerEmail:   data.customerEmail,
+      customerPhone:   data.customerPhone,
+      confirmationCode,
+      serviceName:     serviceRow.name,
+      serviceDuration: serviceRow.duration as number,
+      servicePrice:    Number(serviceRow.price),
+      barberName:      barberRow.name,
+      date:            data.date,
+      time:            data.time,
+    }).catch((e) => console.error('[createBooking] email:', e))
+
+    // SMS to customer
+    sendCustomerSMSConfirmation({
+      customerName:    data.customerName,
+      customerPhone:   data.customerPhone,
+      serviceName:     serviceRow.name,
+      date:            data.date,
+      time:            data.time,
+      confirmationCode,
+      shopName,
+      shopPhone,
+      shopAddress,
+    }).catch((e) => console.error('[createBooking] customer SMS:', e))
+
+    // SMS alert to admin
+    sendAdminSMSAlert({
+      customerName:  data.customerName,
+      customerPhone: data.customerPhone,
+      serviceName:   serviceRow.name,
+      date:          data.date,
+      time:          data.time,
+    }).catch((e) => console.error('[createBooking] admin SMS:', e))
 
     return { success: true, confirmationCode }
   } catch (err) {

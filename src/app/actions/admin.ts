@@ -8,9 +8,15 @@ async function requireAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
-
   const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
   if (data?.role !== 'admin') throw new Error('Forbidden')
+}
+
+// Returns the first active barber's ID — no barber name hardcoded
+async function getActiveBarberId(): Promise<string | null> {
+  const admin = createAdminClient()
+  const { data } = await admin.from('barbers').select('id').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single()
+  return data?.id ?? null
 }
 
 export async function adminUpdateAppointmentStatus(id: string, status: AppointmentStatus) {
@@ -31,7 +37,7 @@ export async function adminGetDashboardData() {
   const weekStart = d.toISOString().split('T')[0]
 
   const { data: barberRow } = await admin
-    .from('barbers').select('id, rating').eq('name', 'Aryan').single()
+    .from('barbers').select('id, rating').eq('is_active', true).order('created_at', { ascending: true }).limit(1).single()
   if (!barberRow) return null
   const bid = barberRow.id
 
@@ -78,10 +84,9 @@ export async function adminGetDashboardData() {
 export async function adminGetAppointments() {
   await requireAdmin()
   const admin = createAdminClient()
-
-  const { data: barberRow } = await admin
-    .from('barbers').select('id').eq('name', 'Aryan').single()
-  if (!barberRow) return []
+  const bid = await getActiveBarberId()
+  if (!bid) return []
+  const barberRow = { id: bid }
 
   const { data } = await admin
     .from('appointments')
@@ -214,7 +219,9 @@ export async function adminGetBarberInfo() {
   const { data } = await admin
     .from('barbers')
     .select('id, name, bio, specialties, instagram, years_experience, rating, total_reviews')
-    .eq('name', 'Aryan')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(1)
     .single()
   return data as any
 }
@@ -223,16 +230,44 @@ export async function adminUpdateBarberInfo(payload: {
   name?: string; bio?: string; instagram?: string; years_experience?: number; rating?: number
 }) {
   await requireAdmin()
+  const bid = await getActiveBarberId()
+  if (!bid) throw new Error('No active barber found')
   const admin = createAdminClient()
-  const { data: barberRow } = await admin.from('barbers').select('id').eq('name', 'Aryan').single()
-  if (!barberRow) throw new Error('Barber not found')
-  const { error } = await admin.from('barbers').update(payload).eq('id', barberRow.id)
+  const { error } = await admin.from('barbers').update(payload).eq('id', bid)
   if (error) throw new Error(error.message)
 }
 
 export async function adminGetBarberId() {
   await requireAdmin()
+  return getActiveBarberId()
+}
+
+// ── Settings (key-value store) ────────────────────────────────────────────────
+
+export async function adminGetSettings(): Promise<Record<string, string>> {
+  await requireAdmin()
   const admin = createAdminClient()
-  const { data } = await admin.from('barbers').select('id').eq('name', 'Aryan').single()
-  return data?.id ?? null
+  const { data } = await admin.from('settings').select('key, value')
+  const map: Record<string, string> = {}
+  for (const row of data ?? []) {
+    try { map[row.key] = JSON.parse(row.value) } catch { map[row.key] = row.value }
+  }
+  return map
+}
+
+export async function adminSaveSetting(key: string, value: string) {
+  await requireAdmin()
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('settings')
+    .upsert({ key, value: JSON.stringify(value) }, { onConflict: 'key' })
+  if (error) throw new Error(error.message)
+}
+
+export async function adminSaveSettings(pairs: Record<string, string>) {
+  await requireAdmin()
+  const admin = createAdminClient()
+  const rows = Object.entries(pairs).map(([key, value]) => ({ key, value: JSON.stringify(value) }))
+  const { error } = await admin.from('settings').upsert(rows, { onConflict: 'key' })
+  if (error) throw new Error(error.message)
 }

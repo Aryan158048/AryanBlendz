@@ -97,35 +97,32 @@ export default async function ServicesPreview() {
 function ServiceCard({ service }: { service: DBService }) {
   const badge = getBadge(service.name)
   return (
-    <Link href={`/booking?service=${service.id}`} className="group block relative">
-      <div className="relative h-full flex flex-col gap-4 p-6 rounded-2xl bg-charcoal-800/70 border border-white/5 hover:border-gold-500/30 hover:bg-charcoal-800 transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(201,168,76,0.12),0_24px_48px_-12px_rgba(0,0,0,0.6),0_8px_32px_-8px_rgba(201,168,76,0.08)] hover:-translate-y-1">
+    <Link href={`/booking?service=${service.id}`} className="group block">
+      <div className="h-full flex flex-col gap-4 p-6 rounded-2xl bg-charcoal-800/70 border border-white/5 hover:border-gold-500/30 hover:bg-charcoal-800 transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(201,168,76,0.12),0_24px_48px_-12px_rgba(0,0,0,0.6),0_8px_32px_-8px_rgba(201,168,76,0.08)] hover:-translate-y-1">
 
-        {badge && (
-          <div className="absolute top-4 right-4">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-gold-500/12 text-gold-400 border border-gold-500/20">
-              <Zap size={8} className="fill-gold-400" />
-              {badge}
-            </span>
-          </div>
-        )}
-
-        {/* Icon + price */}
-        <div className="flex items-start justify-between">
-          <div className="w-11 h-11 rounded-xl bg-gold-500/8 border border-gold-500/15 flex items-center justify-center group-hover:bg-gold-500/15 group-hover:border-gold-500/30 transition-all duration-300">
+        {/* Icon + price row — badge never overlaps price */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gold-500/8 border border-gold-500/15 flex items-center justify-center group-hover:bg-gold-500/15 group-hover:border-gold-500/30 transition-all duration-300 flex-shrink-0">
             <Scissors size={18} className="text-gold-500 rotate-[-45deg]" strokeWidth={2} />
           </div>
-          <div className="text-right">
-            <span className="text-2xl font-bold text-white group-hover:text-gold-300 transition-colors duration-200">
-              ${service.price}
-            </span>
-          </div>
+          <span className="text-2xl font-bold text-white group-hover:text-gold-300 transition-colors duration-200 leading-none pt-1">
+            ${service.price}
+          </span>
         </div>
 
-        {/* Name + duration */}
+        {/* Name + badge + duration */}
         <div>
-          <h3 className="text-base font-semibold text-white group-hover:text-gold-100 transition-colors duration-200 mb-1.5">
-            {service.name}
-          </h3>
+          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+            <h3 className="text-base font-semibold text-white group-hover:text-gold-100 transition-colors duration-200">
+              {service.name}
+            </h3>
+            {badge && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-gold-500/12 text-gold-400 border border-gold-500/20 flex-shrink-0">
+                <Zap size={8} className="fill-gold-400" />
+                {badge}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 text-white/30">
             <Clock size={11} strokeWidth={2} />
             <span className="text-xs">{formatDuration(service.duration)}</span>

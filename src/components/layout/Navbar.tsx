@@ -20,8 +20,12 @@ export default function Navbar() {
   const scrolled = useScrolled()
   const pathname = usePathname()
 
-  // Don't render on admin pages
-  if (pathname.startsWith('/admin') || pathname.startsWith('/login')) return null
+  // Don't render on pages that have their own header
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/booking')
+  ) return null
 
   return (
     <nav
@@ -45,13 +49,24 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Book Now */}
-          <Link
-            href="/booking"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold tracking-wide text-charcoal-950 bg-gold-500 hover:bg-gold-400 active:bg-gold-600 transition-all duration-200 shadow-[0_4px_24px_-4px_rgba(201,168,76,0.35)]"
-          >
-            Book Now
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Rutgers students schedule matcher */}
+            <Link
+              href="/schedule"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white/60 hover:text-white border border-white/10 hover:border-white/20 transition-all duration-200"
+            >
+              <span className="w-2 h-2 rounded-full bg-[#CC0033]" />
+              Rutgers Schedule
+            </Link>
+
+            {/* Book Now */}
+            <Link
+              href="/booking"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold tracking-wide text-charcoal-950 bg-gold-500 hover:bg-gold-400 active:bg-gold-600 transition-all duration-200 shadow-[0_4px_24px_-4px_rgba(201,168,76,0.35)]"
+            >
+              Book Now
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

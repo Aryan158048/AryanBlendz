@@ -2,23 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { DAYS_OF_WEEK } from '@/lib/constants'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { CONTACT_EMAIL, CONTACT_PHONE, SHOP_ADDRESS, DAYS_OF_WEEK } from '@/lib/constants'
-import { adminGetBarberInfo, adminUpdateBarberInfo } from '@/app/actions/admin'
+  adminGetBarberInfo, adminUpdateBarberInfo,
+  adminGetSettings, adminSaveSettings,
+} from '@/app/actions/admin'
 import { getPublicHours } from '@/app/actions/booking'
+import Link from 'next/link'
 
 const dayOrder = [1, 2, 3, 4, 5, 6, 0]
 
@@ -27,435 +24,249 @@ function fmt12h(t: string) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
 }
 
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-white/70 text-sm">{label}</Label>
+      {children}
+      {hint && <p className="text-white/30 text-xs">{hint}</p>}
+    </div>
+  )
+}
+
 export default function SettingsPage() {
-  const [saving, setSaving] = useState<string | null>(null)
-  const [loadingInfo, setLoadingInfo] = useState(true)
-  const [hours, setHours] = useState<{ day_of_week: number; start_time: string; end_time: string; is_available: boolean }[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [saving, setSaving]     = useState<string | null>(null)
+  const [hours, setHours]       = useState<{ day_of_week: number; start_time: string; end_time: string; is_available: boolean }[]>([])
 
-  // Shop info state (loaded from DB)
-  const [shopName, setShopName] = useState('Aryan Blendz')
-  const [shopAddress, setShopAddress] = useState(SHOP_ADDRESS)
-  const [shopPhone, setShopPhone] = useState(CONTACT_PHONE)
-  const [shopEmail, setShopEmail] = useState(CONTACT_EMAIL)
-  const [shopInstagram, setShopInstagram] = useState('@aryanblendz')
+  // Barber / shop info
+  const [barberName, setBarberName]         = useState('')
+  const [shopInstagram, setShopInstagram]   = useState('')
+  const [shopName, setShopName]             = useState('')
+  const [shopAddress, setShopAddress]       = useState('')
+  const [shopPhone, setShopPhone]           = useState('')
+  const [shopEmail, setShopEmail]           = useState('')
 
-  // Booking settings
-  const [depositRequired, setDepositRequired] = useState(true)
-  const [depositAmount, setDepositAmount] = useState('10')
-  const [slotDuration, setSlotDuration] = useState('30')
-  const [maxAdvanceDays, setMaxAdvanceDays] = useState('60')
-  const [cancellationWindow, setCancellationWindow] = useState('24')
-
-  // Notifications
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [smsReminders, setSmsReminders] = useState(false)
-  const [reminderTime, setReminderTime] = useState('24')
+  // Notification settings (persisted in DB settings table)
+  const [adminEmail, setAdminEmail]         = useState('')
+  const [adminPhone, setAdminPhone]         = useState('')
+  const [emailEnabled, setEmailEnabled]     = useState(true)
+  const [smsEnabled, setSmsEnabled]         = useState(false)
 
   useEffect(() => {
-    Promise.all([adminGetBarberInfo(), getPublicHours()]).then(([info, publicHours]) => {
-      if (info) {
-        setShopName(info.name ?? 'Aryan Blendz')
-        setShopInstagram(info.instagram ?? '@aryanblendz')
-      }
-      setHours(publicHours)
-      setLoadingInfo(false)
-    }).catch(() => setLoadingInfo(false))
+    Promise.all([adminGetBarberInfo(), adminGetSettings(), getPublicHours()])
+      .then(([barber, settings, publicHours]) => {
+        if (barber) {
+          setBarberName(barber.name ?? '')
+          setShopInstagram(barber.instagram ?? '')
+        }
+        setShopName(settings.shop_name    ?? 'Aryan Blendz')
+        setShopAddress(settings.shop_address ?? '')
+        setShopPhone(settings.shop_phone   ?? '')
+        setShopEmail(settings.shop_email   ?? '')
+        setAdminEmail(settings.admin_notification_email ?? '')
+        setAdminPhone(settings.admin_phone ?? '')
+        setEmailEnabled(settings.email_notifications !== 'false')
+        setSmsEnabled(settings.sms_reminders === 'true')
+        setHours(publicHours)
+      })
+      .catch(() => toast.error('Failed to load settings'))
+      .finally(() => setLoading(false))
   }, [])
 
   const saveShopInfo = async () => {
     setSaving('shop')
     try {
-      await adminUpdateBarberInfo({ name: shopName, instagram: shopInstagram })
+      await Promise.all([
+        adminUpdateBarberInfo({ name: barberName, instagram: shopInstagram }),
+        adminSaveSettings({
+          shop_name:    shopName,
+          shop_address: shopAddress,
+          shop_phone:   shopPhone,
+          shop_email:   shopEmail,
+        }),
+      ])
       toast.success('Info saved!')
     } catch {
-      toast.error('Failed to save info')
+      toast.error('Failed to save')
     } finally {
       setSaving(null)
     }
   }
 
-  const saveTab = async (tab: string) => {
-    setSaving(tab)
-    await new Promise((r) => setTimeout(r, 900))
-    setSaving(null)
-    toast.success('Settings saved successfully!')
+  const saveNotifications = async () => {
+    setSaving('notifications')
+    try {
+      await adminSaveSettings({
+        admin_notification_email: adminEmail,
+        admin_phone:              adminPhone,
+        email_notifications:      String(emailEnabled),
+        sms_reminders:            String(smsEnabled),
+      })
+      toast.success('Notification settings saved!')
+    } catch {
+      toast.error('Failed to save')
+    } finally {
+      setSaving(null)
+    }
   }
 
-  const FieldRow = ({
-    label,
-    children,
-  }: {
-    label: string
-    children: React.ReactNode
-  }) => (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-      <Label className="text-white/70 text-sm sm:w-44 flex-shrink-0">{label}</Label>
-      <div className="flex-1">{children}</div>
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 text-gold-400 animate-spin" />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-3xl">
-      {/* Header */}
+    <div className="space-y-5 animate-fade-in max-w-2xl">
       <div>
-        <h2 className="font-display text-2xl font-bold text-white">Settings</h2>
-        <p className="text-white/40 text-sm mt-1">Manage your booking and contact info</p>
+        <h2 className="font-display text-xl font-bold text-white">Settings</h2>
+        <p className="text-white/35 text-xs mt-0.5">Manage shop info and notifications</p>
       </div>
 
       <Tabs defaultValue="shop">
-        <TabsList className="bg-charcoal-900 border border-white/8 h-11 flex-wrap">
-          <TabsTrigger
-            value="shop"
-            className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400"
-          >
-            My Info
-          </TabsTrigger>
-          <TabsTrigger
-            value="booking"
-            className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400"
-          >
-            Booking Settings
-          </TabsTrigger>
-          <TabsTrigger
-            value="notifications"
-            className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400"
-          >
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger
-            value="appearance"
-            className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400"
-          >
-            Appearance
-          </TabsTrigger>
+        <TabsList className="bg-charcoal-900 border border-white/8">
+          <TabsTrigger value="shop"          className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400 text-sm">My Info</TabsTrigger>
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-gold-500/15 data-[state=active]:text-gold-400 text-sm">Notifications</TabsTrigger>
         </TabsList>
 
-        {/* Shop Info */}
+        {/* ── My Info ─────────────────────────────── */}
         <TabsContent value="shop">
-          <div className="glass gold-border rounded-2xl p-6 space-y-5">
-            <h3 className="font-display text-lg font-bold text-white mb-1">
-              My Information
-            </h3>
+          <div className="glass gold-border rounded-2xl p-5 space-y-4">
+            <h3 className="font-display text-base font-bold text-white">Shop Information</h3>
             <Separator className="bg-white/8" />
 
-            {loadingInfo ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 text-gold-400 animate-spin" />
+            <Field label="Your Name">
+              <Input value={barberName} onChange={(e) => setBarberName(e.target.value)}
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+            <Field label="Shop Name">
+              <Input value={shopName} onChange={(e) => setShopName(e.target.value)}
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+            <Field label="Address" hint="Shown in confirmation emails and on the website">
+              <Input value={shopAddress} onChange={(e) => setShopAddress(e.target.value)}
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+            <Field label="Phone">
+              <Input value={shopPhone} onChange={(e) => setShopPhone(e.target.value)}
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+            <Field label="Email">
+              <Input type="email" value={shopEmail} onChange={(e) => setShopEmail(e.target.value)}
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+            <Field label="Instagram Handle">
+              <Input value={shopInstagram} onChange={(e) => setShopInstagram(e.target.value)}
+                placeholder="@yourhandle"
+                className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10" />
+            </Field>
+
+            <Separator className="bg-white/8" />
+
+            {/* Hours (read-only display) */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-white/50 text-sm font-medium">Business Hours</p>
+                <Link href="/admin/availability" className="text-gold-400 text-xs hover:text-gold-300 transition-colors">
+                  Edit hours →
+                </Link>
               </div>
-            ) : (
+              <div className="space-y-2">
+                {dayOrder.map((dayNum) => {
+                  const label = DAYS_OF_WEEK.find((d) => d.value === dayNum)?.label ?? ''
+                  const row   = hours.find((h) => h.day_of_week === dayNum)
+                  return (
+                    <div key={dayNum} className="flex items-center justify-between text-sm">
+                      <span className="text-white/45 w-24">{label}</span>
+                      {row?.is_available
+                        ? <span className="text-white/65">{fmt12h(row.start_time)} – {fmt12h(row.end_time)}</span>
+                        : <span className="text-white/20">Closed</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button onClick={saveShopInfo} disabled={saving === 'shop'} className="h-9">
+                {saving === 'shop'
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</>
+                  : <><Save className="w-4 h-4" />Save Info</>}
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* ── Notifications ────────────────────────── */}
+        <TabsContent value="notifications">
+          <div className="glass gold-border rounded-2xl p-5 space-y-4">
+            <h3 className="font-display text-base font-bold text-white">Notification Settings</h3>
+            <p className="text-white/40 text-sm">Where to send alerts when someone books with you.</p>
+            <Separator className="bg-white/8" />
+
+            {/* Email toggle + address */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-charcoal-900/60">
+              <div>
+                <p className="text-white text-sm font-medium">Email alerts</p>
+                <p className="text-white/35 text-xs mt-0.5">Get emailed on every new booking</p>
+              </div>
+              <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} className="data-[state=checked]:bg-gold-500" />
+            </div>
+            {emailEnabled && (
+              <Field label="Your notification email" hint="Where booking alerts are sent. Different from the shop contact email above.">
+                <Input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10"
+                />
+              </Field>
+            )}
+
+            <Separator className="bg-white/8" />
+
+            {/* SMS toggle + phone */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-charcoal-900/60">
+              <div>
+                <p className="text-white text-sm font-medium">SMS alerts</p>
+                <p className="text-white/35 text-xs mt-0.5">Get a text message on every new booking</p>
+              </div>
+              <Switch checked={smsEnabled} onCheckedChange={setSmsEnabled} className="data-[state=checked]:bg-gold-500" />
+            </div>
+            {smsEnabled && (
               <>
-                <FieldRow label="Shop Name">
+                <Field label="Your phone number" hint="Must be in E.164 format, e.g. +12015551234">
                   <Input
-                    value={shopName}
-                    onChange={(e) => setShopName(e.target.value)}
-                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
+                    type="tel"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    placeholder="+12015551234"
+                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 h-10"
                   />
-                </FieldRow>
-
-                <FieldRow label="Address">
-                  <Input
-                    value={shopAddress}
-                    onChange={(e) => setShopAddress(e.target.value)}
-                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                  />
-                </FieldRow>
-
-                <FieldRow label="Phone">
-                  <Input
-                    value={shopPhone}
-                    onChange={(e) => setShopPhone(e.target.value)}
-                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                  />
-                </FieldRow>
-
-                <FieldRow label="Email">
-                  <Input
-                    type="email"
-                    value={shopEmail}
-                    onChange={(e) => setShopEmail(e.target.value)}
-                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                  />
-                </FieldRow>
-
-                <FieldRow label="Instagram">
-                  <Input
-                    value={shopInstagram}
-                    onChange={(e) => setShopInstagram(e.target.value)}
-                    placeholder="@yourhandle"
-                    className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                  />
-                </FieldRow>
-
-                <Separator className="bg-white/8" />
-
-                <div>
-                  <h4 className="text-white/70 text-sm font-medium mb-3">Business Hours</h4>
-                  <div className="space-y-2.5">
-                    {dayOrder.map((dayNum) => {
-                      const dayLabel = DAYS_OF_WEEK.find((d) => d.value === dayNum)?.label ?? ''
-                      const row = hours.find((h) => h.day_of_week === dayNum)
-                      return (
-                        <div key={dayNum} className="flex items-center gap-3 text-sm">
-                          <span className="text-white/50 w-24 flex-shrink-0">{dayLabel}</span>
-                          {row?.is_available ? (
-                            <span className="text-white/60">
-                              {fmt12h(row.start_time)} – {fmt12h(row.end_time)}
-                            </span>
-                          ) : (
-                            <span className="text-white/25">Closed</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                    <p className="text-white/30 text-xs mt-2">
-                      To edit hours, visit the Availability page.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <Button onClick={saveShopInfo} disabled={saving === 'shop'}>
-                    {saving === 'shop' ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Info'
-                    )}
-                  </Button>
+                </Field>
+                <div className="p-3.5 rounded-xl bg-charcoal-900/40 border border-white/6">
+                  <p className="text-white/50 text-xs leading-relaxed">
+                    SMS requires Twilio credentials in your <span className="text-white/80 font-mono">.env.local</span> file:
+                    <br />
+                    <span className="text-gold-400/70 font-mono">TWILIO_ACCOUNT_SID</span>,{' '}
+                    <span className="text-gold-400/70 font-mono">TWILIO_AUTH_TOKEN</span>,{' '}
+                    <span className="text-gold-400/70 font-mono">TWILIO_FROM_NUMBER</span>
+                    <br />
+                    Customers also get an SMS confirmation when they book.
+                  </p>
                 </div>
               </>
             )}
-          </div>
-        </TabsContent>
 
-        {/* Booking Settings */}
-        <TabsContent value="booking">
-          <div className="glass gold-border rounded-2xl p-6 space-y-5">
-            <h3 className="font-display text-lg font-bold text-white mb-1">
-              Booking Configuration
-            </h3>
-            <Separator className="bg-white/8" />
-
-            {/* Deposit */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-charcoal-900/50">
-              <div>
-                <Label className="text-white font-medium">Require Deposit</Label>
-                <p className="text-white/40 text-xs mt-0.5">
-                  Collect a deposit to confirm bookings
-                </p>
-              </div>
-              <Switch
-                checked={depositRequired}
-                onCheckedChange={setDepositRequired}
-                className="data-[state=checked]:bg-gold-500"
-              />
-            </div>
-
-            {depositRequired && (
-              <FieldRow label="Deposit Amount ($)">
-                <Input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  min={1}
-                  className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50 max-w-xs"
-                />
-              </FieldRow>
-            )}
-
-            <FieldRow label="Time Slot Duration">
-              <Select value={slotDuration} onValueChange={setSlotDuration}>
-                <SelectTrigger className="bg-charcoal-900 border-white/10 text-white max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-charcoal-900 border-white/10">
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="45">45 minutes</SelectItem>
-                  <SelectItem value="60">60 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </FieldRow>
-
-            <FieldRow label="Max Advance Booking">
-              <div className="flex items-center gap-2 max-w-xs">
-                <Input
-                  type="number"
-                  value={maxAdvanceDays}
-                  onChange={(e) => setMaxAdvanceDays(e.target.value)}
-                  min={1}
-                  className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                />
-                <span className="text-white/40 text-sm flex-shrink-0">days</span>
-              </div>
-            </FieldRow>
-
-            <FieldRow label="Cancellation Window">
-              <div className="flex items-center gap-2 max-w-xs">
-                <Input
-                  type="number"
-                  value={cancellationWindow}
-                  onChange={(e) => setCancellationWindow(e.target.value)}
-                  min={1}
-                  className="bg-charcoal-900 border-white/10 text-white focus:border-gold-500/50"
-                />
-                <span className="text-white/40 text-sm flex-shrink-0">hours before</span>
-              </div>
-            </FieldRow>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => saveTab('booking')}
-                disabled={saving === 'booking'}
-              >
-                {saving === 'booking' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Booking Settings'
-                )}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Notifications */}
-        <TabsContent value="notifications">
-          <div className="glass gold-border rounded-2xl p-6 space-y-4">
-            <h3 className="font-display text-lg font-bold text-white mb-1">
-              Notification Preferences
-            </h3>
-            <Separator className="bg-white/8" />
-
-            <div className="flex items-center justify-between p-4 rounded-xl bg-charcoal-900/50">
-              <div>
-                <Label className="text-white font-medium">Email Notifications</Label>
-                <p className="text-white/40 text-xs mt-0.5">
-                  Receive email alerts for new bookings and cancellations
-                </p>
-              </div>
-              <Switch
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-                className="data-[state=checked]:bg-gold-500"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-xl bg-charcoal-900/50">
-              <div>
-                <Label className="text-white font-medium">SMS Reminders</Label>
-                <p className="text-white/40 text-xs mt-0.5">
-                  Send SMS appointment reminders to customers
-                </p>
-              </div>
-              <Switch
-                checked={smsReminders}
-                onCheckedChange={setSmsReminders}
-                className="data-[state=checked]:bg-gold-500"
-              />
-            </div>
-
-            {smsReminders && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <Label className="text-white/70 text-sm sm:w-44 flex-shrink-0">Reminder Send Time</Label>
-                <div className="flex-1">
-                  <Select value={reminderTime} onValueChange={setReminderTime}>
-                    <SelectTrigger className="bg-charcoal-900 border-white/10 text-white max-w-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-charcoal-900 border-white/10">
-                      <SelectItem value="2">2 hours before</SelectItem>
-                      <SelectItem value="4">4 hours before</SelectItem>
-                      <SelectItem value="12">12 hours before</SelectItem>
-                      <SelectItem value="24">24 hours before</SelectItem>
-                      <SelectItem value="48">48 hours before</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => saveTab('notifications')}
-                disabled={saving === 'notifications'}
-              >
-                {saving === 'notifications' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Notifications'
-                )}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Appearance */}
-        <TabsContent value="appearance">
-          <div className="glass gold-border rounded-2xl p-6 space-y-5">
-            <h3 className="font-display text-lg font-bold text-white mb-1">
-              Appearance
-            </h3>
-            <Separator className="bg-white/8" />
-
-            {/* Color preview */}
-            <div>
-              <Label className="text-white/70 text-sm mb-3 block">Brand Colors</Label>
-              <div className="flex gap-3 flex-wrap">
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-gold shadow-[var(--shadow-gold)] mb-2" />
-                  <div className="text-white/40 text-xs">Gold</div>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-xl bg-charcoal-950 border border-white/10 mb-2" />
-                  <div className="text-white/40 text-xs">Background</div>
-                </div>
-                <div className="text-center">
-                  <div className="w-12 h-12 rounded-xl bg-charcoal-800 border border-white/10 mb-2" />
-                  <div className="text-white/40 text-xs">Card</div>
-                </div>
-              </div>
-              <p className="text-white/30 text-xs mt-3">
-                Color customization coming soon.
-              </p>
-            </div>
-
-            <Separator className="bg-white/8" />
-
-            <div>
-              <Label className="text-white/70 text-sm mb-3 block">Typography</Label>
-              <div className="space-y-2">
-                <div className="p-3 rounded-xl bg-charcoal-900/50 flex items-center justify-between">
-                  <span className="text-white/60 text-sm">Display font</span>
-                  <span className="text-white font-display text-sm">Playfair Display</span>
-                </div>
-                <div className="p-3 rounded-xl bg-charcoal-900/50 flex items-center justify-between">
-                  <span className="text-white/60 text-sm">Body font</span>
-                  <span className="text-white text-sm">Inter</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={() => saveTab('appearance')}
-                disabled={saving === 'appearance'}
-              >
-                {saving === 'appearance' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Appearance'
-                )}
+            <div className="flex justify-end pt-1">
+              <Button onClick={saveNotifications} disabled={saving === 'notifications'} className="h-9">
+                {saving === 'notifications'
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</>
+                  : <><Save className="w-4 h-4" />Save Notifications</>}
               </Button>
             </div>
           </div>
