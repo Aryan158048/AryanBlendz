@@ -222,10 +222,10 @@ export function ClientScheduleChooser({ adminSchedule, settings }: Props) {
   const blockedDays = SCHEDULE_DAYS.filter(d => (clientSchedule[d]?.length ?? 0) > 0)
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6">
       <div>
-        <h2 className="font-display text-2xl font-bold text-white">Mark Your Busy Times</h2>
-        <p className="text-white/45 text-sm mt-1">
+        <h2 className="font-display text-xl sm:text-2xl font-bold text-white">Mark Your Busy Times</h2>
+        <p className="text-white/45 text-xs sm:text-sm mt-1">
           Drag (or press &amp; drag on mobile) the times you&apos;re <strong className="text-white/70">not free</strong>. Tap a red block to remove it.
         </p>
       </div>
@@ -233,7 +233,7 @@ export function ClientScheduleChooser({ adminSchedule, settings }: Props) {
       {/* ── Mobile: one day at a time ───────────────────────────────────── */}
       <div className="md:hidden space-y-3">
         {/* Day tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex gap-1.5 overflow-x-auto pb-2 -mx-3 px-3 snap-x" style={{ scrollbarWidth: 'none' }}>
           {SCHEDULE_DAYS.map(day => {
             const hasBlocks = (clientSchedule[day]?.length ?? 0) > 0
             const isActive  = activeDay === day
@@ -242,7 +242,7 @@ export function ClientScheduleChooser({ adminSchedule, settings }: Props) {
                 key={day}
                 onClick={() => setActiveDay(day)}
                 className={[
-                  'flex-shrink-0 flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border',
+                  'flex-shrink-0 flex items-center gap-1 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all border snap-start',
                   isActive
                     ? 'bg-[#CC0033] border-[#CC0033] text-white'
                     : hasBlocks
@@ -261,7 +261,7 @@ export function ClientScheduleChooser({ adminSchedule, settings }: Props) {
 
         {/* Active day label + clear */}
         <div className="flex items-center justify-between px-0.5">
-          <p className="text-white/70 text-sm font-semibold">{DAY_LABELS[activeDay]}</p>
+          <p className="text-white/70 text-xs sm:text-sm font-semibold">{DAY_LABELS[activeDay]}</p>
           {(clientSchedule[activeDay]?.length ?? 0) > 0 && (
             <button
               onClick={() => updateDay(activeDay, [])}
@@ -305,16 +305,16 @@ export function ClientScheduleChooser({ adminSchedule, settings }: Props) {
 
       {/* Blocked days summary */}
       {blockedDays.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-white/30 text-xs">Blocked:</span>
+        <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm">
+          <span className="text-white/30">Blocked:</span>
           {blockedDays.map(day => (
-            <span key={day} className="text-xs bg-red-500/10 border border-red-500/20 text-red-300 px-2 py-0.5 rounded-full">
+            <span key={day} className="bg-red-500/10 border border-red-500/20 text-red-300 px-2.5 py-1 rounded-full text-xs">
               {DAY_SHORT[day]}
             </span>
           ))}
           <button
             onClick={() => setClientSchedule({})}
-            className="text-xs text-white/25 hover:text-white/50 transition-colors ml-auto"
+            className="text-white/25 hover:text-white/50 transition-colors ml-auto text-xs"
           >
             Clear all
           </button>

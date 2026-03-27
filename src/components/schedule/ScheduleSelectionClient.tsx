@@ -51,21 +51,21 @@ export function ScheduleSelectionClient() {
   return (
     <div className="w-full">
       <Tabs defaultValue="manual" className="w-full">
-        <div className="max-w-6xl mx-auto px-4 pt-8 pb-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 pt-6 sm:pt-8 pb-3 sm:pb-4">
           <div className="space-y-2 mb-6">
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-white">
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-white">
               Find Your Available Time
             </h1>
-            <p className="text-white/45 text-sm max-w-lg">
+            <p className="text-white/45 text-xs sm:text-sm max-w-lg">
               Choose your preferred method to share your availability
             </p>
           </div>
 
           <TabsList className="grid w-full max-w-sm grid-cols-2 bg-white/10 border border-white/20">
-            <TabsTrigger value="manual" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-sm">
+            <TabsTrigger value="manual" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-xs sm:text-sm">
               Mark Times
             </TabsTrigger>
-            <TabsTrigger value="upload" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-sm">
+            <TabsTrigger value="upload" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-xs sm:text-sm">
               Upload Photo
             </TabsTrigger>
           </TabsList>
