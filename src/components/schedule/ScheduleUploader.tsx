@@ -95,7 +95,7 @@ export function ScheduleUploader({ onParsed, onError, loading, setLoading }: Pro
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/jpg,image/png,image/webp"
+          accept="image/*"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -138,9 +138,11 @@ export function ScheduleUploader({ onParsed, onError, loading, setLoading }: Pro
             </div>
             <div className="text-center">
               <p className="text-white text-sm font-medium">
-                {isDragging ? 'Drop to upload' : 'Drop your schedule here'}
+                {isDragging ? 'Drop to upload' : 'Tap or drop your schedule'}
               </p>
-              <p className="text-white/35 text-xs mt-0.5">or click to browse</p>
+              <p className="text-white/35 text-xs mt-0.5">
+                Browse files or use your camera
+              </p>
             </div>
             <div className="flex items-center gap-1.5 text-white/20 text-xs">
               <span>JPEG · PNG · WebP</span>

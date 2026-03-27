@@ -1,16 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2 } from 'lucide-react'
 import { ClientScheduleChooser } from '@/components/schedule/ClientScheduleChooser'
 import { ScheduleClient } from '@/app/schedule/ScheduleClient'
 import { adminGetWeeklySchedule, getScheduleSettings } from '@/app/actions/schedule'
-import type { WeeklySchedule, AvailableSlotsMap, ScheduleSettings } from '@/lib/schedule/types'
+import type { WeeklySchedule, ScheduleSettings } from '@/lib/schedule/types'
 
 export function ScheduleSelectionClient() {
-  const router = useRouter()
   const [adminSchedule, setAdminSchedule] = useState<WeeklySchedule | null>(null)
   const [settings, setSettings] = useState<ScheduleSettings | null>(null)
   const [loading, setLoading] = useState(true)
@@ -25,13 +23,6 @@ export function ScheduleSelectionClient() {
       setLoading(false)
     })
   }, [])
-
-  const handleProceed = (clientSchedule: WeeklySchedule, availableSlots: AvailableSlotsMap) => {
-    // Store in session and redirect to booking
-    sessionStorage.setItem('selectedSlots', JSON.stringify(availableSlots))
-    sessionStorage.setItem('clientSchedule', JSON.stringify(clientSchedule))
-    router.push('/booking')
-  }
 
   if (loading) {
     return (
@@ -71,11 +62,11 @@ export function ScheduleSelectionClient() {
           </div>
 
           <TabsList className="grid w-full max-w-sm grid-cols-2 bg-white/10 border border-white/20">
-            <TabsTrigger value="manual" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white">
-              Drag & Drop
+            <TabsTrigger value="manual" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-sm">
+              Mark Times
             </TabsTrigger>
-            <TabsTrigger value="upload" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white">
-              Upload Schedule
+            <TabsTrigger value="upload" className="data-[state=active]:bg-[#CC0033] data-[state=active]:text-white text-sm">
+              Upload Photo
             </TabsTrigger>
           </TabsList>
         </div>
@@ -85,8 +76,6 @@ export function ScheduleSelectionClient() {
             <ClientScheduleChooser
               adminSchedule={adminSchedule}
               settings={settings}
-              onProceed={handleProceed}
-              isLoading={false}
             />
           )}
         </TabsContent>
