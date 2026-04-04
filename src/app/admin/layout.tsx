@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Calendar, Scissors, Clock,
-  Users, Settings, ArrowLeft, LogOut, Menu, X, CalendarClock,
+  Users, Settings, ArrowLeft, LogOut, Menu, X, CalendarClock, BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +14,7 @@ const navItems = [
   { label: 'Dashboard',    href: '/admin',              icon: LayoutDashboard },
   { label: 'Appointments', href: '/admin/appointments', icon: Calendar },
   { label: 'Customers',    href: '/admin/customers',    icon: Users },
+  { label: 'Insights',     href: '/admin/insights',     icon: BarChart2 },
   { label: 'Services',     href: '/admin/services',     icon: Scissors },
   { label: 'Availability', href: '/admin/availability', icon: Clock },
   { label: 'Schedule',     href: '/admin/schedule',     icon: CalendarClock },
@@ -29,6 +30,7 @@ const pageTitles: Record<string, string> = {
   '/admin/services':     'Services',
   '/admin/availability': 'Availability',
   '/admin/customers':    'Customers',
+  '/admin/insights':     'AI Insights',
   '/admin/schedule':     'Schedule Matcher',
   '/admin/settings':     'Settings',
 }

@@ -8,7 +8,7 @@ import {
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getBarberSchedule, getAvailableSlots } from '@/app/actions/booking'
+import { getBarberSchedule, getAvailableSlots, getPopularHours } from '@/app/actions/booking'
 
 function formatTimeLabel(time: string): string {
   const [h, m] = time.split(':').map(Number)
@@ -36,15 +36,18 @@ export function DateTimeSelector({
   const [slots, setSlots] = useState<string[]>([])
   const [bookedSlots, setBookedSlots] = useState<string[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
+  const [popularHours, setPopularHours] = useState<Record<number, 'popular' | 'quiet'>>({})
   const timeSlotsRef = useRef<HTMLDivElement>(null)
 
-  // Load schedule (closed days + blocked dates) once on mount
+  // Load schedule (closed days + blocked dates) + slot popularity on mount
   useEffect(() => {
     getBarberSchedule().then(({ closedDays, blockedDates }) => {
       setClosedDays(closedDays)
       setBlockedDates(blockedDates)
       setScheduleLoading(false)
     }).catch(() => setScheduleLoading(false))
+
+    getPopularHours().then(setPopularHours).catch(() => {})
   }, [])
 
   // Load time slots when a date is selected
@@ -193,19 +196,27 @@ export function DateTimeSelector({
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {slots.filter((time) => !bookedSlots.includes(time)).map((time) => {
-                const isSelected = selectedTime === time
+                const isSelected  = selectedTime === time
+                const hour        = parseInt(time.split(':')[0], 10)
+                const popularity  = popularHours[hour]
                 return (
                   <button
                     key={time}
                     onClick={() => onTimeSelect(time)}
                     className={cn(
-                      'rounded-xl py-3 px-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 active:scale-95',
+                      'rounded-xl py-2.5 px-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500 active:scale-95 flex flex-col items-center gap-0.5',
                       isSelected
                         ? 'bg-gold-500 text-charcoal-950 font-bold shadow-[0_0_12px_rgba(201,168,76,0.3)]'
                         : 'bg-charcoal-900 text-white active:bg-gold-500/15 border border-white/6',
                     )}
                   >
-                    {formatTimeLabel(time)}
+                    <span>{formatTimeLabel(time)}</span>
+                    {!isSelected && popularity === 'popular' && (
+                      <span className="text-[9px] font-semibold text-orange-400 leading-none">Popular</span>
+                    )}
+                    {!isSelected && popularity === 'quiet' && (
+                      <span className="text-[9px] font-semibold text-emerald-400 leading-none">Best time</span>
+                    )}
                   </button>
                 )
               })}

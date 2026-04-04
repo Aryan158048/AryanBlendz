@@ -103,15 +103,29 @@ export async function getAvailableSlots(date: string) {
 
   const { data: apts } = await admin
     .from('appointments')
-    .select('time')
+    .select('time, services(duration)')
     .eq('barber_id', barberRow.id)
     .eq('date', date)
     .in('status', ['pending', 'confirmed'])
 
+  // Block every 30-min slot the appointment occupies (start time + service duration)
+  const bookedSet = new Set<string>()
+  for (const apt of apts ?? []) {
+    const t = (apt.time as string).slice(0, 5)
+    const [aptH, aptM] = t.split(':').map(Number)
+    const startMin = aptH * 60 + aptM
+    const duration = (apt as any).services?.duration ?? 30
+    for (let m = startMin; m < startMin + duration; m += 30) {
+      bookedSet.add(
+        `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+      )
+    }
+  }
+
   return {
     open: true,
     slots,
-    booked: ((apts ?? []) as any[]).map((a) => (a.time as string).slice(0, 5)),
+    booked: [...bookedSet],
   }
 }
 
@@ -345,5 +359,51 @@ export async function createBooking(input: BookingInput): Promise<BookingResult>
   } catch (err) {
     console.error('[createBooking] unexpected:', err)
     return { success: false, error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ── Smart Slot Recommendations ────────────────────────────────────────────────
+// Analyzes past 90 days of bookings to classify each hour as 'popular' or 'quiet'.
+// Used by DateTimeSelector to hint which slots are in high demand vs. open/relaxed.
+export async function getPopularHours(): Promise<Record<number, 'popular' | 'quiet'>> {
+  try {
+    const admin = createAdminClient()
+    const { data: barberRow } = await admin
+      .from('barbers').select('id').eq('is_active', true)
+      .order('created_at', { ascending: true }).limit(1).single()
+    if (!barberRow) return {}
+
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - 90)
+    const cutoffStr = cutoff.toISOString().split('T')[0]
+
+    const { data } = await admin
+      .from('appointments')
+      .select('time')
+      .eq('barber_id', barberRow.id)
+      .gte('date', cutoffStr)
+      .in('status', ['completed', 'confirmed', 'pending'])
+
+    if (!data || data.length < 5) return {}
+
+    const counts: Record<number, number> = {}
+    for (const row of data) {
+      const hour = parseInt((row.time as string).split(':')[0], 10)
+      counts[hour] = (counts[hour] ?? 0) + 1
+    }
+
+    const vals = Object.values(counts).sort((a, b) => a - b)
+    const p33 = vals[Math.floor(vals.length * 0.33)] ?? 0
+    const p67 = vals[Math.floor(vals.length * 0.67)] ?? 999
+
+    const result: Record<number, 'popular' | 'quiet'> = {}
+    for (const [h, cnt] of Object.entries(counts)) {
+      const hour = parseInt(h, 10)
+      if (cnt >= p67) result[hour] = 'popular'
+      else if (cnt <= p33) result[hour] = 'quiet'
+    }
+    return result
+  } catch {
+    return {}
   }
 }

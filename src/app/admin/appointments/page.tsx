@@ -14,6 +14,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { adminGetAppointments, adminUpdateAppointmentStatus } from '@/app/actions/admin'
+import { adminGetCustomerRiskMap } from '@/app/actions/insights'
+import { scoreNoShow, RISK_LABEL, RISK_CLASS } from '@/lib/ml/noshow'
 import type { AppointmentStatus } from '@/types'
 
 function fmt12h(t: string) {
@@ -33,7 +35,10 @@ type Appointment = {
   total_price: number | null
   customer_name: string
   customer_email: string
+  customer_total_visits: number
+  customer_id: string
   service_name: string
+  created_at: string
 }
 
 const statusCfg: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -46,23 +51,31 @@ const statusCfg: Record<AppointmentStatus, { label: string; className: string }>
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [riskMap, setRiskMap]           = useState<Record<string, { noShows: number; cancellations: number }>>({})
   const [loading, setLoading]           = useState(true)
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const fetchAppointments = useCallback(async () => {
     try {
-      const data = await adminGetAppointments()
+      const [data, risk] = await Promise.all([
+        adminGetAppointments(),
+        adminGetCustomerRiskMap(),
+      ])
+      setRiskMap(risk)
       setAppointments(data.map((a: any) => ({
-        id:                a.id,
-        date:              a.date,
-        time:              a.time,
-        status:            a.status,
-        confirmation_code: a.confirmation_code,
-        total_price:       a.total_price,
-        customer_name:     a.customers?.name  ?? 'Unknown',
-        customer_email:    a.customers?.email ?? '',
-        service_name:      a.services?.name   ?? 'Unknown',
+        id:                    a.id,
+        date:                  a.date,
+        time:                  a.time,
+        status:                a.status,
+        confirmation_code:     a.confirmation_code,
+        total_price:           a.total_price,
+        customer_name:         a.customers?.name         ?? 'Unknown',
+        customer_email:        a.customers?.email        ?? '',
+        customer_total_visits: a.customers?.total_visits ?? 0,
+        customer_id:           a.customer_id             ?? '',
+        service_name:          a.services?.name          ?? 'Unknown',
+        created_at:            a.created_at              ?? new Date().toISOString(),
       })))
     } catch {
       toast.error('Failed to load appointments')
@@ -98,6 +111,9 @@ export default function AppointmentsPage() {
     confirmed: appointments.filter((a) => a.status === 'confirmed').length,
     total:     appointments.length,
   }
+
+  // Only show risk badge for upcoming (pending/confirmed) appointments
+  const UPCOMING: AppointmentStatus[] = ['pending', 'confirmed']
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -171,32 +187,56 @@ export default function AppointmentsPage() {
           <div className="divide-y divide-white/5">
             {filtered.map((apt) => {
               const s = statusCfg[apt.status]
+
+              // Compute no-show risk only for upcoming appointments
+              const isUpcoming = UPCOMING.includes(apt.status)
+              const risk = isUpcoming
+                ? scoreNoShow({
+                    appointmentDate:    apt.date,
+                    appointmentTime:    apt.time,
+                    createdAt:          apt.created_at,
+                    totalVisits:        apt.customer_total_visits,
+                    priorNoShows:       riskMap[apt.customer_id]?.noShows       ?? 0,
+                    priorCancellations: riskMap[apt.customer_id]?.cancellations ?? 0,
+                  })
+                : null
+
               return (
-                <div key={apt.id} className="flex items-center gap-3 px-4 py-3.5">
+                <div key={apt.id} className="flex items-start gap-3 px-4 py-3.5">
                   {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-sm font-bold text-gold-400 flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-gold-500/10 border border-gold-500/20 flex items-center justify-center text-sm font-bold text-gold-400 flex-shrink-0 mt-0.5">
                     {apt.customer_name.charAt(0)}
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-white text-sm font-medium truncate">{apt.customer_name}</span>
                       <Badge className={`text-[10px] px-1.5 py-0 border flex-shrink-0 ${s.className}`}>
                         {s.label}
                       </Badge>
+                      {risk && risk.risk !== 'low' && (
+                        <Badge className={`text-[10px] px-1.5 py-0 border flex-shrink-0 ${RISK_CLASS[risk.risk]}`}>
+                          {RISK_LABEL[risk.risk]}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-white/40 text-xs mt-0.5 truncate">{apt.service_name}</div>
                     <div className="text-white/25 text-xs mt-0.5">
                       {fmtDate(apt.date)} · {fmt12h(apt.time)}
                       {apt.total_price ? ` · $${apt.total_price}` : ''}
                     </div>
+                    {risk && risk.risk !== 'low' && risk.reasons.length > 0 && (
+                      <div className="text-white/20 text-[10px] mt-1 truncate">
+                        {risk.reasons.join(' · ')}
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="text-white/25 hover:text-white p-1.5 flex-shrink-0 transition-colors">
+                      <button className="text-white/25 hover:text-white p-1.5 flex-shrink-0 transition-colors mt-0.5">
                         <MoreHorizontal className="w-4 h-4" />
                       </button>
                     </DropdownMenuTrigger>

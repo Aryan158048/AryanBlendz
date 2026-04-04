@@ -90,7 +90,7 @@ export async function adminGetAppointments() {
 
   const { data } = await admin
     .from('appointments')
-    .select('id, date, time, status, confirmation_code, total_price, customers(name, email), services(name)')
+    .select('id, date, time, status, confirmation_code, total_price, created_at, customer_id, customers(name, email, total_visits), services(name)')
     .eq('barber_id', barberRow.id)
     .order('date', { ascending: false })
     .order('time', { ascending: false })
